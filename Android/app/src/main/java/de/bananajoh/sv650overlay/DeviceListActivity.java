@@ -31,7 +31,7 @@ public class DeviceListActivity extends AppCompatActivity {
     public static String EXTRA_DEVICE_ADDRESS = "device_address";
 
 
-    // Listen for device discovery broadcasts \\
+    // Listen for device discovery broadcasts //
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -53,7 +53,7 @@ public class DeviceListActivity extends AppCompatActivity {
     };
 
 
-    // On-click listener for all devices in the ListViews \\
+    // On-click listener for all devices in the ListViews //
     private AdapterView.OnItemClickListener deviceClickListener = new AdapterView.OnItemClickListener() {
         public void onItemClick(AdapterView<?> av, View v, int arg2, long arg3) {
             bluetoothAdapter.cancelDiscovery();
@@ -73,7 +73,7 @@ public class DeviceListActivity extends AppCompatActivity {
     };
 
 
-    // Discover nearby Bluetooth devices \\
+    // Discover nearby Bluetooth devices //
     private void bluetoothDiscovery() {
         setProgressBarIndeterminateVisibility(true); // Indicate scanning in the title
         setTitle(R.string.bluetooth_title_scanning);
@@ -85,7 +85,7 @@ public class DeviceListActivity extends AppCompatActivity {
     }
 
 
-    // Create callback \\
+    // Create callback //
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -143,7 +143,7 @@ public class DeviceListActivity extends AppCompatActivity {
     }
 
 
-    // Destroy callback \\
+    // Destroy callback //
     @Override
     public void onDestroy() {
         if(bluetoothAdapter != null) {
@@ -155,7 +155,7 @@ public class DeviceListActivity extends AppCompatActivity {
     }
 
 
-    // Options menu creation callback \\
+    // Options menu creation callback //
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -164,7 +164,7 @@ public class DeviceListActivity extends AppCompatActivity {
     }
 
 
-    // Options menu item selected callback \\
+    // Options menu item selected callback //
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
