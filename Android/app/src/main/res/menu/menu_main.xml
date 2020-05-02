@@ -1,0 +1,21 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="de.bananajoh.sv650overlay.MainActivity">
+    <item
+        android:id="@+id/action_bluetooth_device"
+        android:orderInCategory="100"
+        android:title="@string/action_bluetooth_settings"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_data_logging"
+        android:icon="@android:drawable/ic_notification_overlay"
+        android:orderInCategory="101"
+        android:title="@string/action_data_logging_start"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/action_close"
+        android:orderInCategory="102"
+        android:title="@string/action_close"
+        app:showAsAction="never" />
+</menu>
