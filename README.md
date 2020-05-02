@@ -1,5 +1,5 @@
 # SV650overlay
-Suzuki SV650AK8 motorcycle diagnostic data monitoring using an ESP32, an Android app and Bluetooth connectivity
+Suzuki SV650AK8 motorcycle gear indicator and diagnostic data monitor using an ESP32, an Android app and Bluetooth connectivity
 
 ## Features
 * ESP32 reads diagnostic sensor data from bike ECU via K-Line (SDS protocol) and sends it via Bluetooth
