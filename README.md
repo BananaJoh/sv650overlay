@@ -1,24 +1,41 @@
 # SV650overlay
-Suzuki SV650AK8 diagnostic data monitoring using an ESP32, an Android app and Bluetooth connectivity
+Suzuki SV650AK8 motorcycle diagnostic data monitoring using an ESP32, an Android app and Bluetooth connectivity
 
 ## Features
-* 
+* ESP32 reads diagnostic sensor data from bike ECU via K-Line (SDS protocol) and sends it via Bluetooth
+* Android smartphone app receives, processes, displays and optionally records the data in csv format
+  * Background service handles Bluetooth connection, receives data and processes gear information for overlay
+  * Movable overlay displays current gear and connection status in 7-segment display look
+  * App screens/activities to discover Bluetooth devices, control the background service, display and record data
 
-## Basis/Motivation/Inspiration
-* [RaysceneNS/SV-650-GearPositionIndicator](https://github.com/RaysceneNS/SV-650-GearPositionIndicator)
-* [o5i/Datalogger](https://github.com/o5i/Datalogger)
+## Base
+The Suzuki SV650 has no built-in gear indicator. If you want to have one, there are several solutions, e.g. by modifying the speedo with a Multibot (https://www.youtube.com/watch?v=Pzvj8wLwQjo) or buying an external gear position indicator (https://www.healtech-electronics.com/products/gipro/gpdt/). Neither soldering the speedo nor paying much money for an attachment to the handlebars satisfied me, so I looked for alternatives.  
+First finding was https://github.com/RaysceneNS/SV-650-GearPositionIndicator - an attempt to read the gear position sensor analog voltage directly with an ATtiny microcontroller. I built, but never installed it because I thought it could influence the signal for the ECU.  
+Later I found https://github.com/o5i/Datalogger - an Arduino based datalogger using the diagnostic interface of the bike (which is K-Line aka ISO 9141 with Suzuki specific KWP2000 aka ISO 14230 protocol implementation called SDS). I had an ESP32 flying around for some time, so the idea of building something with wireless connectivity and an Android smartphone, which already had its place on my handlebars, grew. I flashed Arduino core for ESP32 and started customizing the code to remove all unnecessary functions, use one of the HardwareSerials of the ESP32 for K-Line with a L9637 bus driver and later send the data the via BluetoothSerial for communication with the smartphone. Then I started developing the Android app. I moved the conversions of the raw bytes to actual human-readable values to the app and tried to reverse engineer the byte-sensor-mapping and calculations, as the existing ones were wrong for my bike. The recording function was one of the key features for this.  
+So here it is now - some conversions are still missing or inaccurate, but it is working overall.
 
 ## Hardware
-* ESP32-DevKitC
+* ESP32-DevKitC (WROOM32)
+* CXW8508 step-down converter board (DevKit's LDO gets very hot when running with bike's voltage and capacitors are designed for max. 10 volts, as I found out after some cutouts ...)
 * ST L9637D Monolithic bus driver with ISO 9141 interface
-* CXW8508 regulator board
-* Standard resistors, diodes
+* Diode 1N4007 (input)
+* Resistor 510 Ohm (K-Line pull-up)
+* For schematics, refer to https://github.com/iwanders/OBD9141 and https://github.com/aster94/Keyword-Protocol-2000
 
 ## Software
 * ESP32 firmware
-  * Arduino core for ESP32 [espressif/arduino-esp32](https://github.com/espressif/arduino-esp32)
+  * Arduino core for ESP32 https://github.com/espressif/arduino-esp32
 * Android app
-  * Android SDK
-  * Android Studio
+  * Android Studio and SDK tools https://developer.android.com/studio/
 
-## Build and run
+## Additional Information
+* Tested on Android 9
+* Designed for Sony Xperia XZ2 Compact screen (resolution 1080x2160 px FHD+)
+* Recorded log files are stored in internal storage (/storage/emulated/0/Android/data/de.bananajoh.sv650overlay/files/)
+* K-Line post frame delay (T_04) was increased to 200 ms (initially 50 ms), so the resulting refresh rate is about 3-4 Hz instead of 6-7 Hz - reducing load on ESP32 (cutouts when air temperature was high) and log file size
+
+## References
+* SDS protocol thread on ECU hacking forum: https://ecuhacking.activeboard.com/t22573776/sds-protocol/
+* 7-segment display images: http://avtanski.net/projects/lcd/
+* Similar project: https://github.com/synfinatic/sv650sds
+* Similar project for Kawasaki: https://github.com/HerrRiebmann/KDS2Bluetooth
