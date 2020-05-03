@@ -20,7 +20,7 @@ So here it is now - some conversions are still missing or inaccurate, but it is 
 * ST L9637D Monolithic bus driver with ISO 9141 interface
 * Diode 1N4007 (input)
 * Resistor 510 Ohm (K-Line pull-up)
-* For schematics, refer to https://github.com/iwanders/OBD9141 and https://github.com/aster94/Keyword-Protocol-2000
+* For schematics, refer to https://github.com/iwanders/OBD9141 and https://github.com/aster94/Keyword-Protocol-2000 (works fine for me with one diode and without the capacitors)
 
 ## Software
 * ESP32 firmware (Arduino sketch)
