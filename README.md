@@ -16,7 +16,7 @@ So here it is now - some conversions are still missing or inaccurate, but it is 
 
 ## Hardware
 * ESP32-DevKitC (WROOM32)
-* CXW8508 step-down converter board (DevKit's LDO gets very hot when running with bike's voltage and capacitors are designed for max. 10 volts, as I found out after some cutouts ...)
+* DSN-MINI-360 DC-DC buck converter board (DevKit's LDO gets very hot when running with bike's voltage and capacitors are designed for max. 10 volts, as I found out after some cutouts ... so this steps voltage down to 5 volts for the ESP32 first)
 * ST L9637D Monolithic bus driver with ISO 9141 interface
 * Diode 1N4007 (input)
 * Resistor 510 Ohm (K-Line pull-up)
