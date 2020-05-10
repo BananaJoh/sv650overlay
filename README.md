@@ -9,9 +9,9 @@ Suzuki SV650AK8 motorcycle gear indicator and diagnostic data monitor using an E
   * App screens/activities to discover Bluetooth devices, control the background service, display and record data
 
 ## Motivation
-The Suzuki SV650 has no built-in gear indicator. If you want to have one, there are several solutions, e.g. by modifying the speedo with a Multibot (https://www.youtube.com/watch?v=Pzvj8wLwQjo) or buying an external gear position indicator (https://www.healtech-electronics.com/products/gipro/gpdt/). Neither soldering the speedo nor paying much money for an attachment to the handlebars satisfied me, so I looked for alternatives.  
+The Suzuki SV650 has no built-in gear indicator. If you want to have one, there are several solutions, e.g. modifying the speedo with a Multibot or buying an external gear position indicator. Neither soldering the speedo nor paying much money for another attachment to the handlebars satisfied me, so I looked for alternatives.  
 First finding was https://github.com/RaysceneNS/SV-650-GearPositionIndicator - an attempt to read the gear position sensor analog voltage directly with an ATtiny microcontroller. I built, but never installed it because I thought it could influence the signal for the ECU.  
-Later I found https://github.com/o5i/Datalogger - an Arduino based datalogger using the diagnostic interface of the bike (which is K-Line aka ISO 9141 with Suzuki specific KWP2000 aka ISO 14230 protocol implementation, called SDS). I had an ESP32 flying around for some time, so the idea of building something with wireless connectivity and an Android smartphone, which already had its place on my handlebars, grew. I flashed Arduino core for ESP32 and started adapting the code to remove all unnecessary functions, use one of the HardwareSerials of the ESP32 for K-Line with a L9637 and later send the data to the smartphone via BluetoothSerial. Then I started developing the Android app. I moved the conversions of the raw bytes to actual human-readable values to the app and tried to reverse engineer the byte-sensor-mapping and calculations, as the existing ones were wrong for my bike. Implementing the recording function was one of the key tools for this step.  
+Later I found https://github.com/o5i/Datalogger - an Arduino based datalogger using the diagnostic interface of the bike (which is K-Line aka ISO 9141 with Suzuki specific KWP2000 aka ISO 14230 protocol implementation, called SDS). I had an ESP32 flying around for some time, so the idea of building something with wireless connectivity and an Android smartphone, which already had its place on my handlebars, grew. I flashed Arduino core for ESP32 and adapted the code for my needs and hardware (ESP32 with Bluetooth, SV650AK8).
 So here it is now - some conversions are still missing or inaccurate, but it is working overall.
 
 ## Hardware
@@ -21,6 +21,12 @@ So here it is now - some conversions are still missing or inaccurate, but it is 
 * Diode 1N4007 (input)
 * Resistor 510 Ohm (K-Line pull-up)
 * For schematics, refer to https://github.com/iwanders/OBD9141 and https://github.com/aster94/Keyword-Protocol-2000 (works fine for me with one diode and without the capacitors)
+* 6-pin MT .090 Sealed connector (diagnostic interface of the bike)
+  * Diagostic connector pinout (base color/line color):
+    * Black/white: GND
+    * Orange/green: switched +12V
+    * White/red: Dealer mode (when connected to GND)
+    * Gray/red: K-Line
 
 ## Software
 * ESP32 firmware (Arduino sketch)
