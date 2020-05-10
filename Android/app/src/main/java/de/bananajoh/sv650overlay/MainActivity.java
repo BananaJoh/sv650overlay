@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
             new DataInfoEntry("8", "", false),      new DataInfoEntry("9", "", false),
             new DataInfoEntry("10", "", false),     new DataInfoEntry("11", "", false),
             new DataInfoEntry("12", "", false),     new DataInfoEntry("13", "", false),
-            new DataInfoEntry("14", "", false),     new DataInfoEntry("15", "", false),
+            new DataInfoEntry("14?", "", false),     new DataInfoEntry("15", "", false),
             new DataInfoEntry("16", "", false),     new DataInfoEntry("17", "", false),
             new DataInfoEntry("18", "", false),     new DataInfoEntry("19", "", false),
             new DataInfoEntry("20", "", false),     new DataInfoEntry("21", "", false),
@@ -135,20 +135,17 @@ public class MainActivity extends AppCompatActivity {
                     boolean addValueToGrid = true;
                     switch (i + 6) {        // Correct offset to real data frame index
                         case 25:            // RPM
-                            value = (value - 1) * 69 / 10 * 10;
-                            if(value < 0) {
-                                value = 0;
-                            }
+                            value = value * 69 / 10 * 10;
                             break;
                         case 27:            // TPS
-                            value = (value - 56) * 6 / 10;
+                            value = (value - 58) * 6 / 10;
                             break;
                         case 29:            // ECT
                         case 30:            // IAT
                             value = value - 40;
                             break;
                         case 32:            // BATT
-                            float fvalue = value * 8 / 100.0f;
+                            float fvalue = (value + 109) * 5 / 100.0f;
                             gridArrayAdapter.add(Html.fromHtml("<b>" + DATA_INFO[i].label + "</b><br>" + fvalue + DATA_INFO[i].unit));
                             addValueToGrid = false;
                             break;
