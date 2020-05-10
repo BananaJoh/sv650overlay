@@ -18,6 +18,7 @@ So here it is now - some conversions are still missing or inaccurate, but it is 
 * ESP32-DevKitC (WROOM32)
 * DSN-MINI-360 DC-DC buck converter board (DevKit's LDO gets very hot when running with bike's voltage and capacitors are designed for max. 10 volts, as I found out after some cutouts ... so this steps voltage down to 5 volts for the ESP32 first)
 * ST L9637D Monolithic bus driver with ISO 9141 interface
+  * Tx/Rx pins are connected to ESP32 UART2 (hardware serial, GPIO 16/17, Pin 25/27)
 * Diode 1N4007 (input)
 * Resistor 510 Ohm (K-Line pull-up)
 * For schematics, refer to https://github.com/iwanders/OBD9141 and https://github.com/aster94/Keyword-Protocol-2000 (works fine for me with one diode and without the capacitors)
