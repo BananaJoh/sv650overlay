@@ -27,13 +27,18 @@ import android.widget.Toast;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import de.bananajoh.sv650overlay.R;
-
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+
+import static de.bananajoh.sv650overlay.MainActivity.DATA_INFO;
 
 public class OverlayService extends Service implements View.OnTouchListener, View.OnClickListener {
     private WindowManager windowManager = null;
@@ -47,7 +52,6 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
 
     private static final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static final long BLUETOOTH_RECONNECT_INTERVAL_MS = 10000;
-//    private static final int GEAR_DATA_INDEX = 26;
     private static final int GEAR_DATA_INDEX = 28;
     private static final String TEST_DATAFRAME = "6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,"
             + "23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,"
@@ -67,6 +71,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     private Handler bluetoothReconnectHandler = null;
     private Runnable bluetoothReconnect = null;
     private volatile boolean stopBluetoothAutoReconnect = true;
+    private BufferedWriter logFileBuffer = null;
 
 
     // Class for clients to access this service
@@ -82,12 +87,12 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            // No extra intent action check as there is only one filter registered
-            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-            if(device.getAddress().equals(lastDeviceAddress)) {
-                Toast.makeText(overlayButton.getContext(), "Connection to " + device.getName() + " lost.", Toast.LENGTH_LONG).show();
-                disconnectBluetooth(true);
-            }
+        // No extra intent action check as there is only one filter registered
+        BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+        if(device.getAddress().equals(lastDeviceAddress)) {
+            Toast.makeText(overlayButton.getContext(), "Connection to " + device.getName() + " lost.", Toast.LENGTH_LONG).show();
+            disconnectBluetooth(true);
+        }
         }
     };
 
@@ -144,13 +149,13 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
         bluetoothReconnect = new Runnable() {
             @Override
             public void run() {
-                if(stopBluetoothAutoReconnect) {
-                    return;
-                }
-                if(!isBluetoothConnected() && lastDeviceAddress != null) {
-                    connectBluetooth(lastDeviceAddress, lastDeviceSecure);
-                }
-                bluetoothReconnectHandler.postDelayed(this, BLUETOOTH_RECONNECT_INTERVAL_MS);
+            if(stopBluetoothAutoReconnect) {
+                return;
+            }
+            if(!isBluetoothConnected() && lastDeviceAddress != null) {
+                connectBluetooth(lastDeviceAddress, lastDeviceSecure);
+            }
+            bluetoothReconnectHandler.postDelayed(this, BLUETOOTH_RECONNECT_INTERVAL_MS);
             }
         };
     }
@@ -158,11 +163,11 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
 
     // Retrieve gear out of received data for overlay //
     private void processReceivedData(String data) {
-        int gear = -1;
         String values[] = data.split(",");
         if(values.length < GEAR_DATA_INDEX+1) {
             return;
         }
+        int gear = -1;
         try {
             gear = Integer.parseInt(values[GEAR_DATA_INDEX]);
         } catch(NumberFormatException ex) {
@@ -192,6 +197,70 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                 break;
             default:
                 overlayButton.setImageResource(R.drawable.sevenseg_empty);
+        }
+    }
+
+
+    // Start data logging to file //
+    public void startDataLogging() {
+        if(logFileBuffer != null) {
+            return;
+        }
+        String fileTimestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        File logFile = new File(this.getExternalFilesDir(null).getAbsolutePath(), "sensordata_" + fileTimestamp + ".log");
+        if(!logFile.exists()) {
+            try {
+                logFile.createNewFile();
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            logFileBuffer = new BufferedWriter(new FileWriter(logFile, true));
+            String logHeader = "Date,Time";
+            for(MainActivity.DataInfoEntry dataInfoEntry : DATA_INFO) {
+                logHeader += "," + dataInfoEntry.label;
+            }
+            logFileBuffer.append(logHeader);
+            logFileBuffer.newLine();
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    // Stop data logging to file //
+    public void stopDataLogging() {
+        if(logFileBuffer == null) {
+            return;
+        }
+        try {
+            logFileBuffer.flush();
+            logFileBuffer.close();
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+        logFileBuffer = null;
+    }
+
+
+    // Check if data is written to log //
+    public boolean isDataLogging() {
+        return logFileBuffer != null;
+    }
+
+
+    // Write sensor data to end of log file //
+    public void appendLog(String text) {
+        if(logFileBuffer == null) {
+            return;
+        }
+        try {
+            String timestamp = new SimpleDateFormat("yyyyMMdd,HHmmssSSS,").format(new Date());
+            logFileBuffer.append(timestamp + text);
+            logFileBuffer.newLine();
+        } catch(IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -233,6 +302,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                                         //Toast.makeText(overlayButton.getContext(), data, Toast.LENGTH_SHORT).show();
                                         processReceivedData(data);
                                         sendDataBroadcastIntent(data);
+                                        appendLog(data);
                                     }
                                 });
                             } else {
@@ -394,8 +464,8 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     @Override
     public void onDestroy() {
         this.unregisterReceiver(broadcastReceiver);
-        stopBluetoothAutoReconnect = true;
-        stopBluetoothWorkerThread = true;
+        disconnectBluetooth(false);
+        stopDataLogging();
 
         if(overlayButton != null) {
             windowManager.removeView(overlayButton);

@@ -12,8 +12,10 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
@@ -43,7 +45,7 @@ import java.util.Set;
 
 
 public class MainActivity extends AppCompatActivity {
-    private static class DataInfoEntry {
+    public static class DataInfoEntry {
         public String label;
         public String unit;
         public boolean show;
@@ -60,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int CODE_REQUEST_ENABLE_BLUETOOTH = 3;
     private static final int CODE_REQUEST_PERMISSION_DRAW_OVER_APPS = 10002;
     private static final int CODE_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 4;
-    private static final DataInfoEntry[] DATA_INFO = {
+    public static final DataInfoEntry[] DATA_INFO = {
             new DataInfoEntry("6", "", false),      new DataInfoEntry("7", "", false),
             new DataInfoEntry("8", "", false),      new DataInfoEntry("9", "", false),
             new DataInfoEntry("10", "", false),     new DataInfoEntry("11", "", false),
@@ -98,64 +100,47 @@ public class MainActivity extends AppCompatActivity {
     private ArrayAdapter<Spanned> gridArrayAdapter;
     private SharedPreferences sharedPreferences = null;
     private Menu menu_main = null;
-    private BufferedWriter logFileBuffer = null;
-
-
-    // Write sensor data log file //
-    public void appendLog(String text) {
-        if(logFileBuffer == null) {
-            return;
-        }
-        try {
-            String timestamp = new SimpleDateFormat("yyyyMMdd,HHmmssSSS,").format(new Date());
-            logFileBuffer.append(timestamp + text);
-            logFileBuffer.newLine();
-        } catch(IOException e) {
-            e.printStackTrace();
-        }
-    }
 
 
     // Listen for device message broadcasts from overlay service //
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            // No extra intent action check as there is only one filter registered
-            String data = intent.getStringExtra("data");
-            String values[] = data.split(",", DATA_INFO.length);
-            gridArrayAdapter.clear();
-            for(int i = 0; i < values.length; i++) {
-                if(DATA_INFO[i].show) {
-                    int value = 0;
-                    try {
-                        value = Integer.parseInt(values[i]);
-                    } catch (NumberFormatException ex) {
-                        continue;
-                    }
-                    boolean addValueToGrid = true;
-                    switch (i + 6) {        // Correct offset to real data frame index
-                        case 25:            // RPM
-                            value = value * 69 / 10 * 10;
-                            break;
-                        case 27:            // TPS
-                            value = (value - 58) * 6 / 10;
-                            break;
-                        case 29:            // ECT
-                        case 30:            // IAT
-                            value = value - 40;
-                            break;
-                        case 32:            // BATT
-                            float fvalue = (value + 109) * 5 / 100.0f;
-                            gridArrayAdapter.add(Html.fromHtml("<b>" + DATA_INFO[i].label + "</b><br>" + fvalue + DATA_INFO[i].unit));
-                            addValueToGrid = false;
-                            break;
-                    }
-                    if (addValueToGrid) {
-                        gridArrayAdapter.add(Html.fromHtml("<b>" + DATA_INFO[i].label + "</b><br>" + value + DATA_INFO[i].unit));
-                    }
+        // No extra intent action check as there is only one filter registered
+        String data = intent.getStringExtra("data");
+        String values[] = data.split(",", DATA_INFO.length);
+        gridArrayAdapter.clear();
+        for(int i = 0; i < values.length; i++) {
+            if(DATA_INFO[i].show) {
+                int value = 0;
+                try {
+                    value = Integer.parseInt(values[i]);
+                } catch (NumberFormatException ex) {
+                    continue;
+                }
+                boolean addValueToGrid = true;
+                switch (i + 6) {        // Correct offset to real data frame index
+                    case 25:            // RPM
+                        value = value * 69 / 10 * 10;
+                        break;
+                    case 27:            // TPS
+                        value = (value - 58) * 6 / 10;
+                        break;
+                    case 29:            // ECT
+                    case 30:            // IAT
+                        value = value - 40;
+                        break;
+                    case 32:            // BATT
+                        float fvalue = (value + 109) * 5 / 100.0f;
+                        gridArrayAdapter.add(Html.fromHtml("<b>" + DATA_INFO[i].label + "</b><br>" + fvalue + DATA_INFO[i].unit));
+                        addValueToGrid = false;
+                        break;
+                }
+                if (addValueToGrid) {
+                    gridArrayAdapter.add(Html.fromHtml("<b>" + DATA_INFO[i].label + "</b><br>" + value + DATA_INFO[i].unit));
                 }
             }
-            appendLog(data);
+        }
         }
     };
 
@@ -390,38 +375,12 @@ public class MainActivity extends AppCompatActivity {
             showBluetoothDeviceList();
             return true;
         } else if(id == R.id.action_data_logging) {
-            if(logFileBuffer == null) {
-                String filetimestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-                File logFile = new File(this.getExternalFilesDir(null).getAbsolutePath(), "sensordata_" + filetimestamp + ".log");
-                if(!logFile.exists()) {
-                    try {
-                        logFile.createNewFile();
-                    } catch(IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                try {
-                    logFileBuffer = new BufferedWriter(new FileWriter(logFile, true));
-                    String logheader = "Date,Time";
-                    for(DataInfoEntry dataInfoEntry : DATA_INFO) {
-                        logheader += "," + dataInfoEntry.label;
-                    }
-                    logFileBuffer.append(logheader);
-                    logFileBuffer.newLine();
-                } catch(IOException e) {
-                    e.printStackTrace();
-                }
+            if(!overlayServiceBinding.isDataLogging()) {
+                overlayServiceBinding.startDataLogging();
                 menu_main.findItem(R.id.action_data_logging).setTitle(R.string.action_data_logging_stop);
                 menu_main.findItem(R.id.action_data_logging).setIcon(android.R.drawable.checkbox_off_background);
             } else {
-                try {
-                    logFileBuffer.newLine();
-                    logFileBuffer.flush();
-                    logFileBuffer.close();
-                } catch(IOException e) {
-                    e.printStackTrace();
-                }
-                logFileBuffer = null;
+                overlayServiceBinding.stopDataLogging();
                 menu_main.findItem(R.id.action_data_logging).setTitle(R.string.action_data_logging_start);
                 menu_main.findItem(R.id.action_data_logging).setIcon(android.R.drawable.ic_notification_overlay);
             }
