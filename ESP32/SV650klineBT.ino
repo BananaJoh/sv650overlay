@@ -55,26 +55,25 @@ void setup() {
   }
   digitalWrite(LED_GPIO, LOW);
   delay(5000);                                                   // Wait some seconds for ECU to start up
+  while(!SerialBT.hasClient()) {                                 // Wait for Bluetooth client
+    digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
+    delay(500);
+  }
+  digitalWrite(LED_GPIO, HIGH);
 }
 
 
 //__________Main Loop Function__________//
 void loop() {
-  while(!SerialBT.hasClient()) {                                 // Wait for Bluetooth client
-    k_initialized = false;
-    digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
-    delay(500);
-  }
-
   if(k_mode == 0) {
-    digitalWrite(LED_GPIO, LOW);
     if(k_transmit(K_START_COM, 5)) {                             // Start sequence for K-Line fast init
       k_mode++;
     }
   } else if(k_mode == 1) {
     if(k_transmit(K_READ_ALL_SENS, 7)) {                         // Send sensor data request and process answer
-      digitalWrite(LED_GPIO, HIGH);
-      SerialBT.println(k_buffer);
+      if(SerialBT.hasClient()) {
+        SerialBT.println(k_buffer);
+      }
     }
   }
 }
@@ -146,7 +145,7 @@ boolean k_transmit(byte *function, byte num) {
           k_chksm = 0;
           k_size = 0;
           watchdog_ms = millis();                                // Reset watchdog
-          last_frame_end_ms = millis();                               // Wait before sending again
+          last_frame_end_ms = millis();                          // Wait before sending again
           return true;
         }
       }
