@@ -148,7 +148,6 @@ public class DeviceListActivity extends AppCompatActivity {
             bluetoothAdapter.cancelDiscovery();
         }
         this.unregisterReceiver(broadcastReceiver);
-
         super.onDestroy();
     }
 

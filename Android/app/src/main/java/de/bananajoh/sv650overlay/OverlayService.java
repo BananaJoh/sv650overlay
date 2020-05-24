@@ -373,6 +373,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
             bluetoothBusy = false;
             return;
         }
+
         // Connection established
         startBluetoothWorkerThread();
         overlayButton.setImageResource(R.drawable.sevenseg_empty);
@@ -451,7 +452,6 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     @Override
     public void onCreate() {
         super.onCreate();
-
         sendDataBroadcastIntent(TEST_DATAFRAME);
         this.registerReceiver(broadcastReceiver, new IntentFilter("android.bluetooth.device.action.ACL_DISCONNECTED"));
         setupOverlay();
@@ -496,7 +496,6 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
             }
             bluetoothSocket = null;
         }
-
         super.onDestroy();
     }
 

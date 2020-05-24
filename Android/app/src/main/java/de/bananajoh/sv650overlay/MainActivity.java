@@ -283,7 +283,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
-
         LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver, new IntentFilter(String.valueOf(R.string.bluetooth_message_intent_action)));
     }
 
@@ -292,7 +291,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
-
         super.onPause();
     }
 
