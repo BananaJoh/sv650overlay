@@ -283,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
         GridView logListView = findViewById(R.id.main_grid_view);
         logListView.setAdapter(gridArrayAdapter);
 
-        sharedPreferences = this.getSharedPreferences("de.bananajoh.sv650overlay.preferences", Context.MODE_PRIVATE);
+        sharedPreferences = this.getSharedPreferences(this.getPackageName() + ".preferences", Context.MODE_PRIVATE);
 
         overlayService = new Intent(this, OverlayService.class);
         startOverlayServiceIfRequirementsFulfilled();
