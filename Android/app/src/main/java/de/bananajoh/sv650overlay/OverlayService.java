@@ -436,19 +436,6 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Check if MainActivity is in foreground //
-    private static boolean isForeground(Context context) {
-        ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningAppProcessInfo> tasks = manager.getRunningAppProcesses();
-        ComponentName componentInfo = tasks.get(0).importanceReasonComponent;
-
-        if(componentInfo.getPackageName().equals(context.getPackageName())) {
-            return true;
-        }
-        return false;
-    }
-
-
     // Bind callback //
     @Override
     public IBinder onBind(Intent intent) {
