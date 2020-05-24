@@ -38,7 +38,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import static de.bananajoh.sv650overlay.DataInfo.ENTRIES;
 
 public class OverlayService extends Service implements View.OnTouchListener, View.OnClickListener {
     private WindowManager windowManager = null;
