@@ -66,21 +66,25 @@ public class MainActivity extends AppCompatActivity {
                 }
                 boolean addValueToGrid = true;
                 switch (i + 6) {        // Correct offset to real data frame index
-                    case 25:            // RPM
+                    case 25: {          // RPM
                         value = value * 69 / 10 * 10;
                         break;
-                    case 27:            // TPS
+                    }
+                    case 27: {          // TPS
                         value = (value - 58) * 6 / 10;
                         break;
+                    }
                     case 29:            // ECT
-                    case 30:            // IAT
+                    case 30: {          // IAT
                         value = value - 40;
                         break;
-                    case 32:            // BATT
+                    }
+                    case 32: {          // BATT
                         float fvalue = (value + 109) * 5 / 100.0f;
                         gridArrayAdapter.add(Html.fromHtml("<b>" + DataInfo.ENTRIES[i].label + "</b><br>" + fvalue + DataInfo.ENTRIES[i].unit));
                         addValueToGrid = false;
                         break;
+                    }
                 }
                 if (addValueToGrid) {
                     gridArrayAdapter.add(Html.fromHtml("<b>" + DataInfo.ENTRIES[i].label + "</b><br>" + value + DataInfo.ENTRIES[i].unit));
@@ -199,34 +203,37 @@ public class MainActivity extends AppCompatActivity {
     // ActivityResult callback //
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch(requestCode) {
-            case CODE_REQUEST_ENABLE_BLUETOOTH:          // When the request to enable Bluetooth returns
-                if(resultCode == Activity.RESULT_OK) {   // Bluetooth is now enabled
+            case CODE_REQUEST_ENABLE_BLUETOOTH: {        // When the request to enable Bluetooth returns
+                if (resultCode == Activity.RESULT_OK) {  // Bluetooth is now enabled
                     startOverlayServiceIfRequirementsFulfilled();
                 } else {                                 // User did not enable Bluetooth or an error occurred
                     Toast.makeText(this, R.string.bluetooth_not_activated, Toast.LENGTH_LONG).show();
                     finish();
                 }
                 break;
-            case CODE_REQUEST_CONNECT_DEVICE_SECURE:   // When DeviceListActivity returns with a device to connect
-                if(resultCode == Activity.RESULT_OK) {
+            }
+            case CODE_REQUEST_CONNECT_DEVICE_SECURE: {   // When DeviceListActivity returns with a device to connect
+                if (resultCode == Activity.RESULT_OK) {
                     Bundle extras = data.getExtras();
-                    if(extras != null) {
+                    if (extras != null) {
                         String deviceAddress = extras.getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
                         overlayServiceBinding.connectBluetooth(deviceAddress, true);
                         sharedPreferences.edit().putString("deviceAddress", deviceAddress).putBoolean("deviceSecure", true).apply();
                     }
                 }
                 break;
-            case CODE_REQUEST_CONNECT_DEVICE_INSECURE: // When DeviceListActivity returns with a device to connect
-                if(resultCode == Activity.RESULT_OK) {
+            }
+            case CODE_REQUEST_CONNECT_DEVICE_INSECURE: { // When DeviceListActivity returns with a device to connect
+                if (resultCode == Activity.RESULT_OK) {
                     Bundle extras = data.getExtras();
-                    if(extras != null) {
+                    if (extras != null) {
                         String deviceAddress = extras.getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
                         overlayServiceBinding.connectBluetooth(deviceAddress, false);
                         sharedPreferences.edit().putString("deviceAddress", deviceAddress).putBoolean("deviceSecure", false).apply();
                     }
                 }
                 break;
+            }
         }
     }
 

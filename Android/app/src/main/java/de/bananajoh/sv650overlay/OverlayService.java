@@ -173,29 +173,37 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
             return;
         }
         switch(gear) {
-            case 0:
+            case 0: {
                 overlayButton.setImageResource(R.drawable.sevenseg_minus);
                 break;
-            case 1:
+            }
+            case 1: {
                 overlayButton.setImageResource(R.drawable.sevenseg_1);
                 break;
-            case 2:
+            }
+            case 2: {
                 overlayButton.setImageResource(R.drawable.sevenseg_2);
                 break;
-            case 3:
+            }
+            case 3: {
                 overlayButton.setImageResource(R.drawable.sevenseg_3);
                 break;
-            case 4:
+            }
+            case 4: {
                 overlayButton.setImageResource(R.drawable.sevenseg_4);
                 break;
-            case 5:
+            }
+            case 5: {
                 overlayButton.setImageResource(R.drawable.sevenseg_5);
                 break;
-            case 6:
+            }
+            case 6: {
                 overlayButton.setImageResource(R.drawable.sevenseg_6);
                 break;
-            default:
+            }
+            default: {
                 overlayButton.setImageResource(R.drawable.sevenseg_empty);
+            }
         }
     }
 
