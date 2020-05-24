@@ -34,12 +34,12 @@ public class DeviceListActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
-        if(BluetoothDevice.ACTION_FOUND.equals(action)) {
+        if(action.equals(BluetoothDevice.ACTION_FOUND)) {
             BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
             if(device != null && device.getBondState() != BluetoothDevice.BOND_BONDED) {
                 newDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
             }
-        } else if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+        } else if(action.equals(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)) {
             setProgressBarIndeterminateVisibility(false);
             setTitle(R.string.bluetooth_title_select_device);
             if(newDevicesArrayAdapter.getCount() == 0) {
