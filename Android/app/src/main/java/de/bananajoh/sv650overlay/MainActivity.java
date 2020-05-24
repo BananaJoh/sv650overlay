@@ -164,7 +164,6 @@ public class MainActivity extends AppCompatActivity {
         startService(overlayService);
         if(!bindService(overlayService, overlayServiceConnection, Context.BIND_AUTO_CREATE)) {
             Toast.makeText(this, R.string.overlay_service_binding_failed, Toast.LENGTH_LONG).show();
-            return;
         }
     }
 
