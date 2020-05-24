@@ -122,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
         if(!Settings.canDrawOverlays(this)) {
             Intent permissionIntent = new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
             startActivityForResult(permissionIntent, CODE_REQUEST_PERMISSION_DRAW_OVER_APPS);
-            Toast.makeText(MainActivity.this, R.string.overlay_request_permission, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.overlay_request_permission, Toast.LENGTH_LONG).show();
             finish();
             return false;
         }
