@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private OverlayService overlayServiceBinding = null;
     private ArrayAdapter<Spanned> gridArrayAdapter;
     private SharedPreferences sharedPreferences = null;
-    private Menu menu_main = null;
+    private Menu menuMain = null;
 
 
     // Listen for device message broadcasts from overlay service //
@@ -307,7 +307,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
-        menu_main = menu;
+        menuMain = menu;
         return true;
     }
 
@@ -328,12 +328,12 @@ public class MainActivity extends AppCompatActivity {
         } else if(id == R.id.action_data_logging) {
             if(!overlayServiceBinding.isDataLogging()) {
                 overlayServiceBinding.startDataLogging();
-                menu_main.findItem(R.id.action_data_logging).setTitle(R.string.action_data_logging_stop);
-                menu_main.findItem(R.id.action_data_logging).setIcon(android.R.drawable.checkbox_off_background);
+                menuMain.findItem(R.id.action_data_logging).setTitle(R.string.action_data_logging_stop);
+                menuMain.findItem(R.id.action_data_logging).setIcon(android.R.drawable.checkbox_off_background);
             } else {
                 overlayServiceBinding.stopDataLogging();
-                menu_main.findItem(R.id.action_data_logging).setTitle(R.string.action_data_logging_start);
-                menu_main.findItem(R.id.action_data_logging).setIcon(android.R.drawable.ic_notification_overlay);
+                menuMain.findItem(R.id.action_data_logging).setTitle(R.string.action_data_logging_start);
+                menuMain.findItem(R.id.action_data_logging).setIcon(android.R.drawable.ic_notification_overlay);
             }
             return true;
         } else if(id == R.id.action_close) {
