@@ -200,6 +200,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    // Change GUI elements responsible for starting/stopping log recording according to logging state //
+    private void guiSetLogging(boolean on) {
+        if(on) {
+            menuMain.findItem(R.id.action_data_logging).setTitle(R.string.action_data_logging_stop);
+            menuMain.findItem(R.id.action_data_logging).setIcon(android.R.drawable.checkbox_off_background);
+        } else {
+            menuMain.findItem(R.id.action_data_logging).setTitle(R.string.action_data_logging_start);
+            menuMain.findItem(R.id.action_data_logging).setIcon(android.R.drawable.ic_notification_overlay);
+        }
+    }
+
+
     // ActivityResult callback //
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch(requestCode) {
@@ -276,6 +288,14 @@ public class MainActivity extends AppCompatActivity {
 
         overlayService = new Intent(this, OverlayService.class);
         startOverlayServiceIfRequirementsFulfilled();
+
+        if(overlayServiceBinding != null) {
+            if (!overlayServiceBinding.isDataLogging()) {
+                guiSetLogging(true);
+            } else {
+                guiSetLogging(false);
+            }
+        }
     }
 
 
@@ -328,12 +348,10 @@ public class MainActivity extends AppCompatActivity {
         } else if(id == R.id.action_data_logging) {
             if(!overlayServiceBinding.isDataLogging()) {
                 overlayServiceBinding.startDataLogging();
-                menuMain.findItem(R.id.action_data_logging).setTitle(R.string.action_data_logging_stop);
-                menuMain.findItem(R.id.action_data_logging).setIcon(android.R.drawable.checkbox_off_background);
+                guiSetLogging(true);
             } else {
                 overlayServiceBinding.stopDataLogging();
-                menuMain.findItem(R.id.action_data_logging).setTitle(R.string.action_data_logging_start);
-                menuMain.findItem(R.id.action_data_logging).setIcon(android.R.drawable.ic_notification_overlay);
+                guiSetLogging(false);
             }
             return true;
         } else if(id == R.id.action_close) {
