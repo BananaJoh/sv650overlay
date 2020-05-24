@@ -33,20 +33,20 @@ public class DeviceListActivity extends AppCompatActivity {
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if(BluetoothDevice.ACTION_FOUND.equals(action)) {
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                if(device != null && device.getBondState() != BluetoothDevice.BOND_BONDED) {
-                    newDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
-                }
-            } else if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
-                setProgressBarIndeterminateVisibility(false);
-                setTitle(R.string.bluetooth_title_select_device);
-                if(newDevicesArrayAdapter.getCount() == 0) {
-                    String noDevices = getResources().getText(R.string.bluetooth_no_new_devices).toString();
-                    newDevicesArrayAdapter.add(noDevices);
-                }
+        String action = intent.getAction();
+        if(BluetoothDevice.ACTION_FOUND.equals(action)) {
+            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+            if(device != null && device.getBondState() != BluetoothDevice.BOND_BONDED) {
+                newDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
             }
+        } else if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+            setProgressBarIndeterminateVisibility(false);
+            setTitle(R.string.bluetooth_title_select_device);
+            if(newDevicesArrayAdapter.getCount() == 0) {
+                String noDevices = getResources().getText(R.string.bluetooth_no_new_devices).toString();
+                newDevicesArrayAdapter.add(noDevices);
+            }
+        }
         }
     };
 
@@ -54,19 +54,19 @@ public class DeviceListActivity extends AppCompatActivity {
     // On-click listener for all devices in the ListViews //
     private AdapterView.OnItemClickListener deviceClickListener = new AdapterView.OnItemClickListener() {
         public void onItemClick(AdapterView<?> av, View v, int arg2, long arg3) {
-            bluetoothAdapter.cancelDiscovery();
+        bluetoothAdapter.cancelDiscovery();
 
-            // Get the device MAC address, which is the last 17 chars in the View
-            String info = ((TextView) v).getText().toString();
-            String address = info.substring(info.length() - 17);
+        // Get the device MAC address, which is the last 17 chars in the View
+        String info = ((TextView) v).getText().toString();
+        String address = info.substring(info.length() - 17);
 
-            // Create the result Intent and include the MAC address
-            Intent intent = new Intent();
-            intent.putExtra(EXTRA_DEVICE_ADDRESS, address);
+        // Create the result Intent and include the MAC address
+        Intent intent = new Intent();
+        intent.putExtra(EXTRA_DEVICE_ADDRESS, address);
 
-            // Set result and finish this Activity
-            setResult(Activity.RESULT_OK, intent);
-            finish();
+        // Set result and finish this Activity
+        setResult(Activity.RESULT_OK, intent);
+        finish();
         }
     };
 
