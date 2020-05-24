@@ -38,7 +38,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import static de.bananajoh.sv650overlay.MainActivity.DATA_INFO;
+import static de.bananajoh.sv650overlay.DataInfo.ENTRIES;
 
 public class OverlayService extends Service implements View.OnTouchListener, View.OnClickListener {
     private WindowManager windowManager = null;
@@ -218,7 +218,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
         try {
             logFileBuffer = new BufferedWriter(new FileWriter(logFile, true));
             String logHeader = "Date,Time";
-            for(MainActivity.DataInfoEntry dataInfoEntry : DATA_INFO) {
+            for(DataInfoEntry dataInfoEntry : DataInfo.ENTRIES) {
                 logHeader += "," + dataInfoEntry.label;
             }
             logFileBuffer.append(logHeader);

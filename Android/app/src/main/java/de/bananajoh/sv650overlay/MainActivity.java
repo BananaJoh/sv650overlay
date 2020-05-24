@@ -43,57 +43,16 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Set;
 
+import static de.bananajoh.sv650overlay.DataInfo.ENTRIES;
+
 
 public class MainActivity extends AppCompatActivity {
-    public static class DataInfoEntry {
-        public String label;
-        public String unit;
-        public boolean show;
-
-        public DataInfoEntry(String label, String unit, boolean show) {
-            this.label = label;
-            this.unit = unit;
-            this.show = show;
-        }
-    }
-
     private static final int CODE_REQUEST_CONNECT_DEVICE_SECURE = 1;
     private static final int CODE_REQUEST_CONNECT_DEVICE_INSECURE = 2;
     private static final int CODE_REQUEST_ENABLE_BLUETOOTH = 3;
     private static final int CODE_REQUEST_PERMISSION_DRAW_OVER_APPS = 10002;
     private static final int CODE_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 4;
-    public static final DataInfoEntry[] DATA_INFO = {
-            new DataInfoEntry("6", "", false),      new DataInfoEntry("7", "", false),
-            new DataInfoEntry("8", "", false),      new DataInfoEntry("9", "", false),
-            new DataInfoEntry("10", "", false),     new DataInfoEntry("11", "", false),
-            new DataInfoEntry("12", "", false),     new DataInfoEntry("13", "", false),
-            new DataInfoEntry("14?", "", false),     new DataInfoEntry("15", "", false),
-            new DataInfoEntry("16", "", false),     new DataInfoEntry("17", "", false),
-            new DataInfoEntry("18", "", false),     new DataInfoEntry("19", "", false),
-            new DataInfoEntry("20", "", false),     new DataInfoEntry("21", "", false),
-            new DataInfoEntry("22", "", false),     new DataInfoEntry("23", "", false),
-            new DataInfoEntry("24", "", false),     new DataInfoEntry("RPM", "", true),
-            new DataInfoEntry("26", "", false),     new DataInfoEntry("TPS", " %", true),
-            new DataInfoEntry("IAP1", "", true),    new DataInfoEntry("ECT", " °C", true),
-            new DataInfoEntry("IAT", " °C", true),  new DataInfoEntry("31", "", false),
-            new DataInfoEntry("BATT", " V", true),  new DataInfoEntry("HO2", "", true),
-            new DataInfoEntry("GPS", "", true),     new DataInfoEntry("IAP2", "", true),
-            new DataInfoEntry("IDLE", "", true),    new DataInfoEntry("ISCV", "", true),
-            new DataInfoEntry("38", "", false),     new DataInfoEntry("FUEL1a", "", true),
-            new DataInfoEntry("FUEL1b", "", true),  new DataInfoEntry("FUEL2a", "", true),
-            new DataInfoEntry("FUEL2b", "", true),  new DataInfoEntry("43", "", false),
-            new DataInfoEntry("44", "", false),     new DataInfoEntry("45", "", false),
-            new DataInfoEntry("46", "", false),     new DataInfoEntry("47", "", false),
-            new DataInfoEntry("48", "", false),     new DataInfoEntry("IGN1", "", true),
-            new DataInfoEntry("IGN2", "", true),    new DataInfoEntry("51", "", false),
-            new DataInfoEntry("52", "", false),     new DataInfoEntry("53", "", false),
-            new DataInfoEntry("STV", "", true),     new DataInfoEntry("55", "", false),
-            new DataInfoEntry("56", "", false),     new DataInfoEntry("57", "", false),
-            new DataInfoEntry("58", "", false),     new DataInfoEntry("PAIR", "", true),
-            new DataInfoEntry("C/M/TO", "", true),  new DataInfoEntry("N", "", true),
-            new DataInfoEntry("62", "", false),     new DataInfoEntry("63", "", false),
-            new DataInfoEntry("SUM", "", false)
-    };
+
     private BluetoothAdapter bluetoothAdapter = null;
     private Intent overlayService = null;
     private OverlayService overlayServiceBinding = null;
@@ -108,10 +67,10 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
         // No extra intent action check as there is only one filter registered
         String data = intent.getStringExtra("data");
-        String values[] = data.split(",", DATA_INFO.length);
+        String values[] = data.split(",", DataInfo.ENTRIES.length);
         gridArrayAdapter.clear();
         for(int i = 0; i < values.length; i++) {
-            if(DATA_INFO[i].show) {
+            if(DataInfo.ENTRIES[i].show) {
                 int value = 0;
                 try {
                     value = Integer.parseInt(values[i]);
@@ -132,12 +91,12 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     case 32:            // BATT
                         float fvalue = (value + 109) * 5 / 100.0f;
-                        gridArrayAdapter.add(Html.fromHtml("<b>" + DATA_INFO[i].label + "</b><br>" + fvalue + DATA_INFO[i].unit));
+                        gridArrayAdapter.add(Html.fromHtml("<b>" + DataInfo.ENTRIES[i].label + "</b><br>" + fvalue + DataInfo.ENTRIES[i].unit));
                         addValueToGrid = false;
                         break;
                 }
                 if (addValueToGrid) {
-                    gridArrayAdapter.add(Html.fromHtml("<b>" + DATA_INFO[i].label + "</b><br>" + value + DATA_INFO[i].unit));
+                    gridArrayAdapter.add(Html.fromHtml("<b>" + DataInfo.ENTRIES[i].label + "</b><br>" + value + DataInfo.ENTRIES[i].unit));
                 }
             }
         }
