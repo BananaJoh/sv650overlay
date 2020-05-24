@@ -73,6 +73,7 @@ public class DeviceListActivity extends AppCompatActivity {
 
     // Discover nearby Bluetooth devices //
     private void bluetoothDiscovery() {
+        newDevicesArrayAdapter.clear();
         setProgressBarIndeterminateVisibility(true); // Indicate scanning in the title
         setTitle(R.string.bluetooth_title_scanning);
         findViewById(R.id.bluetooth_title_new_devices).setVisibility(View.VISIBLE);
