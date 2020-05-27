@@ -114,7 +114,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
         // Retrieve width and height of image
         BitmapFactory.Options dimensions = new BitmapFactory.Options();
         dimensions.inJustDecodeBounds = true;
-        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.sevenseg_empty, dimensions);
+        BitmapFactory.decodeResource(getResources(), R.drawable.sevenseg_empty, dimensions);
         int imageWidth = dimensions.outWidth;
         int imageHeight = dimensions.outHeight;
 
