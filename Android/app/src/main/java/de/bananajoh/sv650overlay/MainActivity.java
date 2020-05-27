@@ -287,14 +287,6 @@ public class MainActivity extends AppCompatActivity {
 
         overlayService = new Intent(this, OverlayService.class);
         startOverlayServiceIfRequirementsFulfilled();
-
-        if(overlayServiceBinding != null) {
-            if (!overlayServiceBinding.isDataLogging()) {
-                guiSetLogging(true);
-            } else {
-                guiSetLogging(false);
-            }
-        }
     }
 
 
@@ -327,6 +319,9 @@ public class MainActivity extends AppCompatActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         menuMain = menu;
+        if(overlayServiceBinding != null) {
+            guiSetLogging(overlayServiceBinding.isDataLogging());
+        }
         return true;
     }
 
