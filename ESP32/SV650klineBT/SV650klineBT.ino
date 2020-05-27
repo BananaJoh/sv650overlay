@@ -40,9 +40,6 @@ byte K_READ_ALL_SENS[7] = {                                      // Request sens
   0x80, 0x12, 0xF1, 0x02, 0x21, 0x08, 0xAE
 };
 
-uint16_t rpm_tmp = 0;
-uint16_t iap = 0;
-
 
 //__________Setup Function__________//
 void setup() {

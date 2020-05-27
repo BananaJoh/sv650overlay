@@ -290,43 +290,43 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
         bluetoothReadBuffer = new byte[1024];
         bluetoothWorkerThread = new Thread(new Runnable() {
             public void run() {
-                while(!Thread.currentThread().isInterrupted() && !stopBluetoothWorkerThread) {
-                    try {
-                        int bytesAvailable = bluetoothInputStream.available();
-                        if(bytesAvailable > 0) {
-                            byte[] packetBytes = new byte[bytesAvailable];
-                            bluetoothInputStream.read(packetBytes);
-                            for(int i = 0; i < bytesAvailable; i++) {
-                                byte b = packetBytes[i];
-                                if(b == delimiter) {
-                                    byte[] encodedBytes = new byte[bluetoothReadBufferPosition];
-                                    System.arraycopy(bluetoothReadBuffer, 0, encodedBytes, 0, encodedBytes.length);
-                                    final String data = new String(encodedBytes, "US-ASCII");
-                                    bluetoothReadBufferPosition = 0;
+            while(!Thread.currentThread().isInterrupted() && !stopBluetoothWorkerThread) {
+                try {
+                    int bytesAvailable = bluetoothInputStream.available();
+                    if(bytesAvailable > 0) {
+                        byte[] packetBytes = new byte[bytesAvailable];
+                        bluetoothInputStream.read(packetBytes);
+                        for(int i = 0; i < bytesAvailable; i++) {
+                            byte b = packetBytes[i];
+                            if(b == delimiter) {
+                                byte[] encodedBytes = new byte[bluetoothReadBufferPosition];
+                                System.arraycopy(bluetoothReadBuffer, 0, encodedBytes, 0, encodedBytes.length);
+                                final String data = new String(encodedBytes, "US-ASCII");
+                                bluetoothReadBufferPosition = 0;
 
-                                    handler.post(new Runnable() {
-                                        public void run() {
-                                            //Toast.makeText(overlayButton.getContext(), data, Toast.LENGTH_SHORT).show();
-                                            processReceivedData(data);
-                                            sendDataBroadcastIntent(data);
-                                            appendLog(data);
-                                        }
-                                    });
-                                } else {
-                                    bluetoothReadBuffer[bluetoothReadBufferPosition++] = b;
-                                }
+                                handler.post(new Runnable() {
+                                    public void run() {
+                                    //Toast.makeText(overlayButton.getContext(), data, Toast.LENGTH_SHORT).show();
+                                    processReceivedData(data);
+                                    sendDataBroadcastIntent(data);
+                                    appendLog(data);
+                                    }
+                                });
+                            } else {
+                                bluetoothReadBuffer[bluetoothReadBufferPosition++] = b;
                             }
                         }
-                    } catch(final IOException ex) {
-                        handler.post(new Runnable() {
-                            public void run() {
-                                Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
-                            }
-                        });
-                        overlayButton.setImageResource(R.drawable.sevenseg_dot);
-                        stopBluetoothWorkerThread = true;
                     }
+                } catch(final IOException ex) {
+                    handler.post(new Runnable() {
+                        public void run() {
+                        Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                    overlayButton.setImageResource(R.drawable.sevenseg_dot);
+                    stopBluetoothWorkerThread = true;
                 }
+            }
             }
         });
         bluetoothWorkerThread.start();
@@ -342,7 +342,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     if(bluetoothBusy) {
                         handler.post(new Runnable() {
                             public void run() {
-                                Toast.makeText(overlayButton.getContext(), R.string.bluetooth_busy, Toast.LENGTH_LONG).show();
+                            Toast.makeText(overlayButton.getContext(), R.string.bluetooth_busy, Toast.LENGTH_LONG).show();
                             }
                         });
                         return;
@@ -353,7 +353,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     if(!bluetoothAdapter.isEnabled()) {
                         handler.post(new Runnable() {
                             public void run() {
-                                Toast.makeText(overlayButton.getContext(), R.string.bluetooth_not_activated, Toast.LENGTH_LONG).show();
+                            Toast.makeText(overlayButton.getContext(), R.string.bluetooth_not_activated, Toast.LENGTH_LONG).show();
                             }
                         });
                         return;
@@ -370,7 +370,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     } catch(final IOException ex) {
                         handler.post(new Runnable() {
                             public void run() {
-                                Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
                             }
                         });
                         bluetoothSocket = null;
@@ -382,7 +382,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     } catch(final IOException ex) {
                         handler.post(new Runnable() {
                             public void run() {
-                                Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
                             }
                         });
                         bluetoothSocket = null;
@@ -395,7 +395,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     } catch(final IOException ex1) {
                         handler.post(new Runnable() {
                             public void run() {
-                                Toast.makeText(overlayButton.getContext(), ex1.toString(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(overlayButton.getContext(), ex1.toString(), Toast.LENGTH_LONG).show();
                             }
                         });
                         try {
@@ -403,7 +403,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                         } catch(final IOException ex2) {
                             handler.post(new Runnable() {
                                  public void run() {
-                                    Toast.makeText(overlayButton.getContext(), ex2.toString(), Toast.LENGTH_LONG).show();
+                                Toast.makeText(overlayButton.getContext(), ex2.toString(), Toast.LENGTH_LONG).show();
                                  }
                             });
                             bluetoothSocket = null;
@@ -422,7 +422,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     bluetoothBusy = false;
                     handler.post(new Runnable() {
                         public void run() {
-                            Toast.makeText(overlayButton.getContext(), "Connected to " + bluetoothDevice.getName() + ".", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(overlayButton.getContext(), "Connected to " + bluetoothDevice.getName() + ".", Toast.LENGTH_SHORT).show();
                         }
                     });
                 }
