@@ -352,7 +352,7 @@ public class MainActivity extends AppCompatActivity {
             unbindService(overlayServiceConnection);
             stopService(overlayService);
             overlayService = null;
-            finish();
+            finishAndRemoveTask();
             return true;
         }
         return super.onOptionsItemSelected(item);
