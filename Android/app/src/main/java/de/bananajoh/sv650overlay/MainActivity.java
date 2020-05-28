@@ -293,6 +293,7 @@ public class MainActivity extends AppCompatActivity {
     // Destroy callback //
     @Override
     public void onDestroy() {
+        unbindService(overlayServiceConnection);
         super.onDestroy();
     }
 
