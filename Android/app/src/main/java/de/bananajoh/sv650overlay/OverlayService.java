@@ -148,7 +148,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     return;
                 }
                 if(!isBluetoothConnected() && lastDeviceAddress != null) {
-                    connectBluetooth(lastDeviceAddress, lastDeviceSecure);
+                    connectBluetooth(lastDeviceAddress, lastDeviceSecure, false);
                 }
                 bluetoothReconnectHandler.postDelayed(this, BLUETOOTH_RECONNECT_INTERVAL_MS);
             }
@@ -330,7 +330,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
 
 
     // Connect to Bluetooth device with serial port profile //
-    public void connectBluetooth(final String deviceAddress, final boolean deviceSecure) {
+    public void connectBluetooth(final String deviceAddress, final boolean deviceSecure, final boolean invokeAutoReconnect) {
         final Handler handler = new Handler();
         new Thread(new Runnable() {
             public void run() {
@@ -354,9 +354,13 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     return;
                 }
 
-                // Save data to for auto reconnect
+                // Save data to for auto reconnect and activate reconnecting
                 lastDeviceAddress = deviceAddress;
                 lastDeviceSecure = deviceSecure;
+                if(invokeAutoReconnect) {
+                    stopBluetoothAutoReconnect = false;
+                    bluetoothReconnectHandler.postDelayed(bluetoothReconnect, BLUETOOTH_RECONNECT_INTERVAL_MS);
+                }
 
                 // Get the BluetoothDevice object and attempt to connect to the device
                 bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
@@ -416,8 +420,6 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                         overlayButton.setImageResource(R.drawable.sevenseg_empty);
                     }
                 });
-                stopBluetoothAutoReconnect = false;
-                bluetoothReconnectHandler.postDelayed(bluetoothReconnect, BLUETOOTH_RECONNECT_INTERVAL_MS);
                 bluetoothBusy = false;
                 handler.post(new Runnable() {
                     public void run() {

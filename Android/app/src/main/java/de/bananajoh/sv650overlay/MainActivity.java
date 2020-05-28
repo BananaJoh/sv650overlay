@@ -187,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
             Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
             for(BluetoothDevice device : pairedDevices) {
                 if(device.getAddress().equals(restoredDeviceAddress)) {
-                    overlayServiceBinding.connectBluetooth(restoredDeviceAddress, restoredDeviceSecure);
+                    overlayServiceBinding.connectBluetooth(restoredDeviceAddress, restoredDeviceSecure, true);
                     return;
                 }
             }
@@ -228,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
                     Bundle extras = data.getExtras();
                     if (extras != null) {
                         String deviceAddress = extras.getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
-                        overlayServiceBinding.connectBluetooth(deviceAddress, true);
+                        overlayServiceBinding.connectBluetooth(deviceAddress, true, true);
                         sharedPreferences.edit().putString("deviceAddress", deviceAddress).putBoolean("deviceSecure", true).apply();
                     }
                 }
@@ -239,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
                     Bundle extras = data.getExtras();
                     if (extras != null) {
                         String deviceAddress = extras.getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
-                        overlayServiceBinding.connectBluetooth(deviceAddress, false);
+                        overlayServiceBinding.connectBluetooth(deviceAddress, false, true);
                         sharedPreferences.edit().putString("deviceAddress", deviceAddress).putBoolean("deviceSecure", false).apply();
                     }
                 }
