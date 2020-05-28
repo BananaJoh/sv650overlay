@@ -47,7 +47,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     private boolean widgetMoving = false;
 
     private static final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    private static final long BLUETOOTH_RECONNECT_INTERVAL_MS = 10000;
+    private static final long BLUETOOTH_RECONNECT_INTERVAL_MS = 20000;
     private static final int GEAR_DATA_INDEX = 28;
     private static final String TEST_DATAFRAME = "6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,"
             + "23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,"
