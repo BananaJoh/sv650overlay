@@ -334,98 +334,96 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
         final Handler handler = new Handler();
         Thread bluetoothConnectThread = new Thread(new Runnable() {
             public void run() {
-                while(!Thread.currentThread().isInterrupted()) {
-                    if(bluetoothBusy) {
-                        handler.post(new Runnable() {
-                            public void run() {
-                                Toast.makeText(overlayButton.getContext(), R.string.bluetooth_busy, Toast.LENGTH_LONG).show();
-                            }
-                        });
-                        return;
-                    }
-                    bluetoothBusy = true;
-
-                    bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-                    if(!bluetoothAdapter.isEnabled()) {
-                        handler.post(new Runnable() {
-                            public void run() {
-                                Toast.makeText(overlayButton.getContext(), R.string.bluetooth_not_activated, Toast.LENGTH_LONG).show();
-                            }
-                        });
-                        return;
-                    }
-
-                    // Save data to for auto reconnect
-                    lastDeviceAddress = deviceAddress;
-                    lastDeviceSecure = deviceSecure;
-
-                    // Get the BluetoothDevice object and attempt to connect to the device
-                    bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
-                    try {
-                        bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(SPP_UUID);
-                    } catch(final IOException ex) {
-                        handler.post(new Runnable() {
-                            public void run() {
-                                Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
-                            }
-                        });
-                        bluetoothSocket = null;
-                        bluetoothBusy = false;
-                        return;
-                    }
-                    try {
-                        bluetoothSocket.connect();
-                    } catch(final IOException ex) {
-                        handler.post(new Runnable() {
-                            public void run() {
-                                Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
-                            }
-                        });
-                        bluetoothSocket = null;
-                        bluetoothBusy = false;
-                        return;
-                    }
-                    try {
-                        bluetoothOutputStream = bluetoothSocket.getOutputStream();
-                        bluetoothInputStream = bluetoothSocket.getInputStream();
-                    } catch(final IOException ex1) {
-                        handler.post(new Runnable() {
-                            public void run() {
-                                Toast.makeText(overlayButton.getContext(), ex1.toString(), Toast.LENGTH_LONG).show();
-                            }
-                        });
-                        try {
-                            bluetoothSocket.close();
-                        } catch(final IOException ex2) {
-                            handler.post(new Runnable() {
-                                 public void run() {
-                                     Toast.makeText(overlayButton.getContext(), ex2.toString(), Toast.LENGTH_LONG).show();
-                                 }
-                            });
-                            bluetoothSocket = null;
-                        }
-                        bluetoothOutputStream = null;
-                        bluetoothInputStream = null;
-                        bluetoothBusy = false;
-                        return;
-                    }
-
-                    // Connection established
+                if(bluetoothBusy) {
                     handler.post(new Runnable() {
                         public void run() {
-                            startBluetoothWorkerThread();
-                            overlayButton.setImageResource(R.drawable.sevenseg_empty);
+                            Toast.makeText(overlayButton.getContext(), R.string.bluetooth_busy, Toast.LENGTH_LONG).show();
                         }
                     });
-                    stopBluetoothAutoReconnect = false;
-                    bluetoothReconnectHandler.postDelayed(bluetoothReconnect, BLUETOOTH_RECONNECT_INTERVAL_MS);
-                    bluetoothBusy = false;
-                    handler.post(new Runnable() {
-                        public void run() {
-                            Toast.makeText(overlayButton.getContext(), "Connected to " + bluetoothDevice.getName() + ".", Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                    return;
                 }
+                bluetoothBusy = true;
+
+                bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                if(!bluetoothAdapter.isEnabled()) {
+                    handler.post(new Runnable() {
+                        public void run() {
+                            Toast.makeText(overlayButton.getContext(), R.string.bluetooth_not_activated, Toast.LENGTH_LONG).show();
+                        }
+                    });
+                    return;
+                }
+
+                // Save data to for auto reconnect
+                lastDeviceAddress = deviceAddress;
+                lastDeviceSecure = deviceSecure;
+
+                // Get the BluetoothDevice object and attempt to connect to the device
+                bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
+                try {
+                    bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(SPP_UUID);
+                } catch(final IOException ex) {
+                    handler.post(new Runnable() {
+                        public void run() {
+                            Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                    bluetoothSocket = null;
+                    bluetoothBusy = false;
+                    return;
+                }
+                try {
+                    bluetoothSocket.connect();
+                } catch(final IOException ex) {
+                    handler.post(new Runnable() {
+                        public void run() {
+                            Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                    bluetoothSocket = null;
+                    bluetoothBusy = false;
+                    return;
+                }
+                try {
+                    bluetoothOutputStream = bluetoothSocket.getOutputStream();
+                    bluetoothInputStream = bluetoothSocket.getInputStream();
+                } catch(final IOException ex1) {
+                    handler.post(new Runnable() {
+                        public void run() {
+                            Toast.makeText(overlayButton.getContext(), ex1.toString(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                    try {
+                        bluetoothSocket.close();
+                    } catch(final IOException ex2) {
+                        handler.post(new Runnable() {
+                             public void run() {
+                                 Toast.makeText(overlayButton.getContext(), ex2.toString(), Toast.LENGTH_LONG).show();
+                             }
+                        });
+                        bluetoothSocket = null;
+                    }
+                    bluetoothOutputStream = null;
+                    bluetoothInputStream = null;
+                    bluetoothBusy = false;
+                    return;
+                }
+
+                // Connection established
+                handler.post(new Runnable() {
+                    public void run() {
+                        startBluetoothWorkerThread();
+                        overlayButton.setImageResource(R.drawable.sevenseg_empty);
+                    }
+                });
+                stopBluetoothAutoReconnect = false;
+                bluetoothReconnectHandler.postDelayed(bluetoothReconnect, BLUETOOTH_RECONNECT_INTERVAL_MS);
+                bluetoothBusy = false;
+                handler.post(new Runnable() {
+                    public void run() {
+                        Toast.makeText(overlayButton.getContext(), "Connected to " + bluetoothDevice.getName() + ".", Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
         });
         bluetoothConnectThread.start();
