@@ -332,7 +332,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     // Connect to Bluetooth device with serial port profile //
     public void connectBluetooth(final String deviceAddress, final boolean deviceSecure) {
         final Handler handler = new Handler();
-        Thread bluetoothConnectThread = new Thread(new Runnable() {
+        new Thread(new Runnable() {
             public void run() {
                 if(bluetoothBusy) {
                     handler.post(new Runnable() {
@@ -425,8 +425,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     }
                 });
             }
-        });
-        bluetoothConnectThread.start();
+        }).start();
     }
 
 
