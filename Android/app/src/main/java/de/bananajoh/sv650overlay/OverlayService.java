@@ -412,8 +412,12 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     }
 
                     // Connection established
-                    startBluetoothWorkerThread();
-                    overlayButton.setImageResource(R.drawable.sevenseg_empty);
+                    handler.post(new Runnable() {
+                        public void run() {
+                            startBluetoothWorkerThread();
+                            overlayButton.setImageResource(R.drawable.sevenseg_empty);
+                        }
+                    });
                     stopBluetoothAutoReconnect = false;
                     bluetoothReconnectHandler.postDelayed(bluetoothReconnect, BLUETOOTH_RECONNECT_INTERVAL_MS);
                     bluetoothBusy = false;
