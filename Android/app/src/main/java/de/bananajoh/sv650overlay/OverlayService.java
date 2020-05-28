@@ -65,7 +65,6 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     private boolean lastDeviceSecure = false;
     private Handler bluetoothReconnectHandler = null;
     private Runnable bluetoothReconnect = null;
-    private volatile boolean stopBluetoothAutoReconnect = true;
     private BufferedWriter logFileBuffer = null;
 
 
@@ -144,9 +143,6 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
         bluetoothReconnect = new Runnable() {
             @Override
             public void run() {
-                if(stopBluetoothAutoReconnect) {
-                    return;
-                }
                 if(!isBluetoothConnected() && lastDeviceAddress != null) {
                     connectBluetooth(lastDeviceAddress, lastDeviceSecure, false);
                 }
@@ -358,7 +354,6 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                 lastDeviceAddress = deviceAddress;
                 lastDeviceSecure = deviceSecure;
                 if(invokeAutoReconnect) {
-                    stopBluetoothAutoReconnect = false;
                     bluetoothReconnectHandler.postDelayed(bluetoothReconnect, BLUETOOTH_RECONNECT_INTERVAL_MS);
                 }
 
@@ -442,6 +437,9 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
 
     // Disconnect Bluetooth device if connected //
     public synchronized void disconnectBluetooth(boolean keepReconnecting) {
+        if(!keepReconnecting) {
+            bluetoothReconnectHandler.removeCallbacksAndMessages(null);
+        }
         if(bluetoothBusy) {
             Toast.makeText(this, R.string.bluetooth_busy, Toast.LENGTH_LONG).show();
             return;
@@ -450,8 +448,6 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
             return;
         }
         bluetoothBusy = true;
-
-        stopBluetoothAutoReconnect = !keepReconnecting;
         stopBluetoothWorkerThread = true;
         while(bluetoothWorkerThread.isAlive()) {
             SystemClock.sleep(1);
