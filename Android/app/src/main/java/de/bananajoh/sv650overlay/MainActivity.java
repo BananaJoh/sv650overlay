@@ -52,45 +52,45 @@ public class MainActivity extends AppCompatActivity {
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-        // No extra intent action check as there is only one filter registered
-        String data = intent.getStringExtra("data");
-        String values[] = data.split(",", DataInfo.ENTRIES.length);
-        gridArrayAdapter.clear();
-        for(int i = 0; i < values.length; i++) {
-            if(DataInfo.ENTRIES[i].show) {
-                int value = 0;
-                try {
-                    value = Integer.parseInt(values[i]);
-                } catch (NumberFormatException ex) {
-                    continue;
-                }
-                boolean addValueToGrid = true;
-                switch (i + 6) {        // Correct offset to real data frame index
-                    case 25: {          // RPM
-                        value = value * 69 / 10 * 10;
-                        break;
+            // No extra intent action check as there is only one filter registered
+            String data = intent.getStringExtra("data");
+            String values[] = data.split(",", DataInfo.ENTRIES.length);
+            gridArrayAdapter.clear();
+            for(int i = 0; i < values.length; i++) {
+                if(DataInfo.ENTRIES[i].show) {
+                    int value = 0;
+                    try {
+                        value = Integer.parseInt(values[i]);
+                    } catch (NumberFormatException ex) {
+                        continue;
                     }
-                    case 27: {          // TPS
-                        value = (value - 58) * 6 / 10;
-                        break;
+                    boolean addValueToGrid = true;
+                    switch (i + 6) {        // Correct offset to real data frame index
+                        case 25: {          // RPM
+                            value = value * 69 / 10 * 10;
+                            break;
+                        }
+                        case 27: {          // TPS
+                            value = (value - 58) * 6 / 10;
+                            break;
+                        }
+                        case 29:            // ECT
+                        case 30: {          // IAT
+                            value = value - 40;
+                            break;
+                        }
+                        case 32: {          // BATT
+                            float fvalue = (value + 109) * 5 / 100.0f;
+                            gridArrayAdapter.add(Html.fromHtml("<b>" + DataInfo.ENTRIES[i].label + "</b><br>" + fvalue + DataInfo.ENTRIES[i].unit));
+                            addValueToGrid = false;
+                            break;
+                        }
                     }
-                    case 29:            // ECT
-                    case 30: {          // IAT
-                        value = value - 40;
-                        break;
+                    if (addValueToGrid) {
+                        gridArrayAdapter.add(Html.fromHtml("<b>" + DataInfo.ENTRIES[i].label + "</b><br>" + value + DataInfo.ENTRIES[i].unit));
                     }
-                    case 32: {          // BATT
-                        float fvalue = (value + 109) * 5 / 100.0f;
-                        gridArrayAdapter.add(Html.fromHtml("<b>" + DataInfo.ENTRIES[i].label + "</b><br>" + fvalue + DataInfo.ENTRIES[i].unit));
-                        addValueToGrid = false;
-                        break;
-                    }
-                }
-                if (addValueToGrid) {
-                    gridArrayAdapter.add(Html.fromHtml("<b>" + DataInfo.ENTRIES[i].label + "</b><br>" + value + DataInfo.ENTRIES[i].unit));
                 }
             }
-        }
         }
     };
 
