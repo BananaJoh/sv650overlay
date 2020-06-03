@@ -45,18 +45,21 @@ byte K_READ_ALL_SENS[7] = {                                      // Request sens
 void setup() {
   pinMode(LED_GPIO, OUTPUT);
   pinMode(K_TX_GPIO, OUTPUT);
-
-  while(!SerialBT.begin("ESP_SV", false)) {                      // Bluetooth init error
-    digitalWrite(LED_GPIO, HIGH);
-    delay(1000);
-  }
   digitalWrite(LED_GPIO, LOW);
-  delay(5000);                                                   // Wait some seconds for ECU to start up
-  while(!SerialBT.hasClient()) {                                 // Wait for Bluetooth client
+  
+  // Wait some seconds for ECU to start up
+  delay(5000);
+
+  // Initialize Bluetooth
+  while(!SerialBT.begin("ESP_SV", false)) {
+    delay(500);
+  }
+
+  // Wait for Bluetooth client
+  while(!SerialBT.hasClient()) {
     digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
     delay(500);
   }
-  digitalWrite(LED_GPIO, HIGH);
 }
 
 
@@ -69,7 +72,10 @@ void loop() {
   } else if(k_mode == 1) {
     if(k_transmit(K_READ_ALL_SENS, 7)) {                         // Send sensor data request and process answer
       if(SerialBT.hasClient()) {
+        digitalWrite(LED_GPIO, HIGH);
         SerialBT.println(k_buffer);
+      } else {
+        digitalWrite(LED_GPIO, LOW); 
       }
     }
   }
