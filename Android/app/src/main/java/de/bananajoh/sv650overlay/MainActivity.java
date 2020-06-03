@@ -350,7 +350,6 @@ public class MainActivity extends AppCompatActivity {
             }
             return true;
         } else if(id == R.id.action_close) {
-            unbindService(overlayServiceConnection);
             stopService(overlayService);
             overlayService = null;
             finishAndRemoveTask();

@@ -376,7 +376,9 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                 } catch(final IOException ex) {
                     handler.post(new Runnable() {
                         public void run() {
-                            Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
+                            if(overlayButton != null) {
+                                Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
+                            }
                         }
                     });
                     bluetoothSocket = null;
