@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.text.Html;
+import android.text.Spanned;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -25,9 +27,27 @@ import java.util.Set;
 
 public class DeviceListActivity extends AppCompatActivity {
     private BluetoothAdapter bluetoothAdapter = null;
-    private ArrayAdapter<String> newDevicesArrayAdapter;
+    private ArrayAdapter<Spanned> newDevicesArrayAdapter;
     public static String EXTRA_DEVICE_ADDRESS = "device_address";
 
+
+    // Return the device type as string //
+    private String deviceTypeString(int deviceType) {
+        switch(deviceType) {
+            case BluetoothDevice.DEVICE_TYPE_CLASSIC: {
+                return "Classic";
+            }
+            case BluetoothDevice.DEVICE_TYPE_LE: {
+                return "Low Energy";
+            }
+            case BluetoothDevice.DEVICE_TYPE_DUAL: {
+                return "Dual";
+            }
+            default: {
+                return "Unknown";
+            }
+        }
+    }
 
     // Listen for device discovery broadcasts //
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
@@ -37,13 +57,13 @@ public class DeviceListActivity extends AppCompatActivity {
             if(action.equals(BluetoothDevice.ACTION_FOUND)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 if(device != null && device.getBondState() != BluetoothDevice.BOND_BONDED) {
-                    newDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
+                    newDevicesArrayAdapter.add(Html.fromHtml("<b>" + device.getName() + "</b> <i>" + deviceTypeString(device.getType()) + "</i><br>" + device.getAddress()));
                 }
             } else if(action.equals(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)) {
                 setProgressBarIndeterminateVisibility(false);
                 setTitle(R.string.bluetooth_title_select_device);
                 if(newDevicesArrayAdapter.getCount() == 0) {
-                    String noDevices = getResources().getText(R.string.bluetooth_no_new_devices).toString();
+                    Spanned noDevices = Html.fromHtml("<i>" + getResources().getText(R.string.bluetooth_no_new_devices).toString() + "</i>");
                     newDevicesArrayAdapter.add(noDevices);
                 }
             }
@@ -99,8 +119,8 @@ public class DeviceListActivity extends AppCompatActivity {
         setResult(Activity.RESULT_CANCELED);
 
         // Initialize array adapters. One for already paired devices and one for newly discovered devices
-        ArrayAdapter<String> pairedDevicesArrayAdapter = new ArrayAdapter<>(this, R.layout.device_list_entry);
-        newDevicesArrayAdapter = new ArrayAdapter<>(this, R.layout.device_list_entry);
+        ArrayAdapter<Spanned> pairedDevicesArrayAdapter = new ArrayAdapter<Spanned>(this, R.layout.device_list_entry);
+        newDevicesArrayAdapter = new ArrayAdapter<Spanned>(this, R.layout.device_list_entry);
 
         // Find and set up the ListView for paired devices
         ListView pairedListView = findViewById(R.id.bluetooth_paired_devices);
@@ -130,10 +150,10 @@ public class DeviceListActivity extends AppCompatActivity {
         if(pairedDevices.size() > 0) {
             findViewById(R.id.bluetooth_title_paired_devices).setVisibility(View.VISIBLE);
             for(BluetoothDevice device : pairedDevices) {
-                pairedDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
+                pairedDevicesArrayAdapter.add(Html.fromHtml("<b>" + device.getName() + "</b> <i>" + deviceTypeString(device.getType()) + "</i><br>" + device.getAddress()));
             }
         } else {
-            String noDevices = getResources().getText(R.string.bluetooth_no_paired_devices).toString();
+            Spanned noDevices = Html.fromHtml("<i>" + getResources().getText(R.string.bluetooth_no_paired_devices).toString() + "</i>");
             pairedDevicesArrayAdapter.add(noDevices);
         }
 
