@@ -489,12 +489,13 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
 
                         @Override
                         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-                            final byte[] data = characteristic.getValue();
-                            if(data != null && data.length > 0) {
+                            final String data = characteristic.getStringValue(0);
+                            if(data != null && data.length() > 0) {
                                 handler.post(new Runnable() {
                                     public void run() {
-                                        //Toast.makeText(overlayButton.getContext(), data.toString(), Toast.LENGTH_SHORT).show();
-                                        processReceivedData(data.toString());
+                                        Toast.makeText(overlayButton.getContext(), data, Toast.LENGTH_SHORT).show();
+                                        //processReceivedData(data);
+                                        // TODO: Read the whole characteristic here, because notifications only contain the first 20 bytes of it
                                     }
                                 });
                             }
