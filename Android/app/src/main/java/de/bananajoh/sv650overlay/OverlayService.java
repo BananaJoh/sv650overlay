@@ -433,7 +433,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
 
 
     // Check if Bluetooth is connected //
-    public synchronized boolean isBluetoothConnected() {
+    public boolean isBluetoothConnected() {
         if(bluetoothSocket == null) {
             return false;
         }
@@ -442,7 +442,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
 
 
     // Disconnect Bluetooth device if connected //
-    public synchronized void disconnectBluetooth(boolean keepReconnecting) {
+    public void disconnectBluetooth(boolean keepReconnecting) {
         if(!keepReconnecting) {
             bluetoothReconnectHandler.removeCallbacksAndMessages(null);
         }
@@ -505,6 +505,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
         setupOverlay();
         setupBluetoothReconnect();
     }
+
 
     // Destroy callback //
     @Override
