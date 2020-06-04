@@ -65,6 +65,7 @@ void setup() {
 
 //__________Main Loop Function__________//
 void loop() {
+  digitalWrite(LED_GPIO, SerialBT.hasClient());
   if(k_mode == 0) {
     if(k_transmit(K_START_COM, 5)) {                             // Start sequence for K-Line fast init
       k_mode++;
@@ -72,10 +73,7 @@ void loop() {
   } else if(k_mode == 1) {
     if(k_transmit(K_READ_ALL_SENS, 7)) {                         // Send sensor data request and process answer
       if(SerialBT.hasClient()) {
-        digitalWrite(LED_GPIO, HIGH);
         SerialBT.println(k_buffer);
-      } else {
-        digitalWrite(LED_GPIO, LOW); 
       }
     }
   }
