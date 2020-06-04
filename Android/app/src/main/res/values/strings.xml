@@ -4,6 +4,8 @@
     <string name="action_data_logging_start">Start data logging</string>
     <string name="action_data_logging_stop">Stop data logging</string>
     <string name="action_close">Close</string>
+    <string name="action_send_reset">Reset command</string>
+    <string name="reset_command_sent">Reset command sent</string>
     <string name="overlay_request_permission">Please grant the overlay permission for this app, then restart it.</string>
     <string name="overlay_stopping_service">Stopping overlay service ...</string>
     <string name="overlay_service_binding_failed">Binding with the overlay service failed.</string>

@@ -339,6 +339,8 @@ public class MainActivity extends AppCompatActivity {
             overlayServiceBinding.disconnectBluetooth(false);
             showBluetoothDeviceList();
             return true;
+        } else if(id == R.id.action_send_reset) {
+            overlayServiceBinding.sendResetCommand();
         } else if(id == R.id.action_data_logging) {
             if(!overlayServiceBinding.isDataLogging()) {
                 overlayServiceBinding.startDataLogging();

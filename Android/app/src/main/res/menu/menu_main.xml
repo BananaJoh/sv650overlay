@@ -8,14 +8,19 @@
         android:title="@string/action_bluetooth_settings"
         app:showAsAction="never" />
     <item
+        android:id="@+id/action_send_reset"
+        android:orderInCategory="101"
+        android:title="@string/action_send_reset"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_data_logging"
         android:icon="@android:drawable/ic_notification_overlay"
-        android:orderInCategory="101"
+        android:orderInCategory="102"
         android:title="@string/action_data_logging_start"
         app:showAsAction="always" />
     <item
         android:id="@+id/action_close"
-        android:orderInCategory="102"
+        android:orderInCategory="103"
         android:title="@string/action_close"
         app:showAsAction="never" />
 </menu>

@@ -65,6 +65,12 @@ void setup() {
 
 //__________Main Loop Function__________//
 void loop() {
+  if(SerialBT.available()) {                                     // Reset on command
+    if(SerialBT.read() == 'R') {
+      ESP.restart();
+    }
+  }
+
   digitalWrite(LED_GPIO, SerialBT.hasClient());
   if(k_mode == 0) {
     if(k_transmit(K_START_COM, 5)) {                             // Start sequence for K-Line fast init
