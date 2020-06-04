@@ -168,7 +168,8 @@ public class MainActivity extends AppCompatActivity {
     // List paired and discovered Bluetooth devices //
     public void showBluetoothDeviceList() {
         Intent deviceListIntent = new Intent(this, DeviceListActivity.class);
-        startActivityForResult(deviceListIntent, CODE_REQUEST_CONNECT_DEVICE_SECURE);Toast.makeText(this, R.string.bluetooth_select_device, Toast.LENGTH_LONG).show();
+        startActivityForResult(deviceListIntent, CODE_REQUEST_CONNECT_DEVICE_SECURE);
+        Toast.makeText(this, R.string.bluetooth_select_device, Toast.LENGTH_LONG).show();
     }
 
 
@@ -253,8 +254,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return;
             }
-            // other 'case' lines to check for other
-            // permissions this app might request.
         }
     }
 
@@ -326,7 +325,6 @@ public class MainActivity extends AppCompatActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if(id == R.id.action_bluetooth_device) {
             overlayServiceBinding.disconnectBluetooth(false);
             showBluetoothDeviceList();
