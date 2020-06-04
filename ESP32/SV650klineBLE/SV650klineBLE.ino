@@ -80,7 +80,7 @@ void setup() {
 
   // Create and start the BLE service
   BLEService *pService = pServer->createService(SERVICE_UUID);
-  pTxCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID_TX, BLECharacteristic::PROPERTY_NOTIFY);
+  pTxCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID_TX, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
   pTxCharacteristic->addDescriptor(new BLE2902());
   pService->start();
 

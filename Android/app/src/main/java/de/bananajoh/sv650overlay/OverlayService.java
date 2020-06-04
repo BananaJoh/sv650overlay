@@ -488,18 +488,33 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                         }
 
                         @Override
-                        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+                        public void onCharacteristicChanged(BluetoothGatt gatt, final BluetoothGattCharacteristic characteristic) {
                             final String data = characteristic.getStringValue(0);
                             if(data != null && data.length() > 0) {
                                 handler.post(new Runnable() {
                                     public void run() {
-                                        Toast.makeText(overlayButton.getContext(), data, Toast.LENGTH_SHORT).show();
-                                        //processReceivedData(data);
-                                        // TODO: Read the whole characteristic here, because notifications only contain the first 20 bytes of it
+                                        Toast.makeText(overlayButton.getContext(), "notify: " + data, Toast.LENGTH_SHORT).show();
+                                        bluetoothGatt.readCharacteristic(characteristic);
                                     }
                                 });
                             }
                         }
+
+                        @Override
+                        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+                            if(status == BluetoothGatt.GATT_SUCCESS) {
+                                final String data = characteristic.getStringValue(0);
+                                if(data != null && data.length() > 0) {
+                                    handler.post(new Runnable() {
+                                        public void run() {
+                                            Toast.makeText(overlayButton.getContext(), "read: " + data, Toast.LENGTH_SHORT).show();
+                                            processReceivedData(data);
+                                        }
+                                    });
+                                }
+                            }
+                        }
+
                     };
                     bluetoothGatt = bluetoothDevice.connectGatt(overlayButton.getContext(), false, gattCallback);
                 }
