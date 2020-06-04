@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothSocket;
@@ -217,7 +218,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
         appendLog(data);
     }
 
-    
+
     // Start data logging to file //
     public void startDataLogging() {
         if(logFileBuffer != null) {
@@ -445,7 +446,8 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                                 bluetoothGatt.discoverServices();
                                 handler.post(new Runnable() {
                                     public void run() {
-                                        Toast.makeText(overlayButton.getContext(), "Conn", Toast.LENGTH_SHORT).show();
+                                        overlayButton.setImageResource(R.drawable.sevenseg_empty);
+                                        Toast.makeText(overlayButton.getContext(), "Connected to " + bluetoothDevice.getName() + ".", Toast.LENGTH_SHORT).show();
                                     }
                                 });
                             } else if(newState == BluetoothProfile.STATE_DISCONNECTED) {
@@ -453,7 +455,8 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                                 handler.post(new Runnable() {
                                     public void run() {
                                         if(overlayButton != null) {
-                                            Toast.makeText(overlayButton.getContext(), "Disconn", Toast.LENGTH_SHORT).show();
+                                            overlayButton.setImageResource(R.drawable.sevenseg_dot);
+                                            Toast.makeText(overlayButton.getContext(), "Disconnected from " + bluetoothDevice.getName() + ".", Toast.LENGTH_SHORT).show();
                                         }
                                     }
                                 });
@@ -463,11 +466,14 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                         @Override
                         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
                             if(status == BluetoothGatt.GATT_SUCCESS) {
-                                for(BluetoothGattService service : gatt.getServices()) {
-                                    if(service.getUuid() == BLE_UART_UUID) {
-                                        for(BluetoothGattCharacteristic characteristic : service.getCharacteristics()) {
-                                            if(characteristic.getUuid() == BLE_CHAR_TX_UUID) {
+                                for(final BluetoothGattService service : gatt.getServices()) {
+                                    if(service.getUuid().equals(BLE_UART_UUID)) {
+                                        for(final BluetoothGattCharacteristic characteristic : service.getCharacteristics()) {
+                                            if(characteristic.getUuid().equals(BLE_CHAR_TX_UUID)) {
                                                 bluetoothGatt.setCharacteristicNotification(characteristic, true);
+                                                BluetoothGattDescriptor descriptor = characteristic.getDescriptors().get(0);
+                                                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                                                bluetoothGatt.writeDescriptor(descriptor);
                                             }
                                         }
                                     }
