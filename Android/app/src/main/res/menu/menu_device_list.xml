@@ -4,6 +4,6 @@
 
     <item
         android:id="@+id/action_scan_bluetooth"
-        android:title="@string/action_scan_bluetooth"
+        android:title="@string/action_rescan_bluetooth"
         app:showAsAction="always" />
 </menu>

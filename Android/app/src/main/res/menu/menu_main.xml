@@ -3,9 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="de.bananajoh.sv650overlay.MainActivity">
     <item
-        android:id="@+id/action_bluetooth_device"
+        android:id="@+id/action_select_bluetooth_device"
         android:orderInCategory="100"
-        android:title="@string/action_bluetooth_settings"
+        android:title="@string/action_select_bluetooth_device"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_send_reset"
@@ -13,7 +13,7 @@
         android:title="@string/action_send_reset"
         app:showAsAction="never" />
     <item
-        android:id="@+id/action_data_logging"
+        android:id="@+id/action_toggle_data_logging"
         android:icon="@android:drawable/ic_notification_overlay"
         android:orderInCategory="102"
         android:title="@string/action_data_logging_start"

@@ -88,7 +88,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
             // No extra intent action check as there is only one filter registered
             BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
             if(device.getAddress().equals(lastDeviceAddress)) {
-                Toast.makeText(overlayButton.getContext(), "Connection to " + device.getName() + " lost.", Toast.LENGTH_LONG).show();
+                Toast.makeText(overlayButton.getContext(), "Connection to " + device.getName() + " lost", Toast.LENGTH_LONG).show();
                 disconnectBluetooth(true);
             }
         }
@@ -441,7 +441,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     public void run() {
                         startBluetoothWorkerThread();
                         overlayButton.setImageResource(R.drawable.sevenseg_empty);
-                        Toast.makeText(overlayButton.getContext(), "Connected to " + bluetoothDevice.getName() + ".", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(overlayButton.getContext(), "Connected to " + bluetoothDevice.getName(), Toast.LENGTH_SHORT).show();
                     }
                 });
                 bluetoothBusy = false;

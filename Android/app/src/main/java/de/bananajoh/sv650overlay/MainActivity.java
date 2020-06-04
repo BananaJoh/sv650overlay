@@ -204,11 +204,11 @@ public class MainActivity extends AppCompatActivity {
     // Change GUI elements responsible for starting/stopping log recording according to logging state //
     private void guiSetLogging(boolean on) {
         if(on) {
-            menuMain.findItem(R.id.action_data_logging).setTitle(R.string.action_data_logging_stop);
-            menuMain.findItem(R.id.action_data_logging).setIcon(android.R.drawable.checkbox_off_background);
+            menuMain.findItem(R.id.action_toggle_data_logging).setTitle(R.string.action_data_logging_stop);
+            menuMain.findItem(R.id.action_toggle_data_logging).setIcon(android.R.drawable.checkbox_off_background);
         } else {
-            menuMain.findItem(R.id.action_data_logging).setTitle(R.string.action_data_logging_start);
-            menuMain.findItem(R.id.action_data_logging).setIcon(android.R.drawable.ic_notification_overlay);
+            menuMain.findItem(R.id.action_toggle_data_logging).setTitle(R.string.action_data_logging_start);
+            menuMain.findItem(R.id.action_toggle_data_logging).setIcon(android.R.drawable.ic_notification_overlay);
         }
     }
 
@@ -335,13 +335,13 @@ public class MainActivity extends AppCompatActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        if(id == R.id.action_bluetooth_device) {
+        if(id == R.id.action_select_bluetooth_device) {
             overlayServiceBinding.disconnectBluetooth(false);
             showBluetoothDeviceList();
             return true;
         } else if(id == R.id.action_send_reset) {
             overlayServiceBinding.sendResetCommand();
-        } else if(id == R.id.action_data_logging) {
+        } else if(id == R.id.action_toggle_data_logging) {
             if(!overlayServiceBinding.isDataLogging()) {
                 overlayServiceBinding.startDataLogging();
                 guiSetLogging(true);
