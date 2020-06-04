@@ -6,6 +6,7 @@ public class DataInfoEntry {
     public String unit;
     public boolean show;
 
+
     public DataInfoEntry(String label, String unit, boolean show) {
         this.label = label;
         this.unit = unit;

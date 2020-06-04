@@ -26,9 +26,10 @@ import java.util.Set;
 
 
 public class DeviceListActivity extends AppCompatActivity {
-    private BluetoothAdapter bluetoothAdapter = null;
-    private ArrayAdapter<Spanned> newDevicesArrayAdapter;
     public static String EXTRA_DEVICE_ADDRESS = "device_address";
+
+    private BluetoothAdapter bluetoothAdapter = null;
+    private ArrayAdapter<Spanned> newDevicesArrayAdapter = null;
 
 
     // Return the device type as string //
@@ -48,6 +49,7 @@ public class DeviceListActivity extends AppCompatActivity {
             }
         }
     }
+
 
     // Listen for device discovery broadcasts //
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
