@@ -163,10 +163,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
 
 
     // Retrieve gear out of received data for overlay //
-    private void processReceivedData(String data) {
-        sendDataBroadcastIntent(data);
-        appendLog(data);
-
+    private void updateGear(String data) {
         String values[] = data.split(",");
         if(values.length < GEAR_DATA_INDEX+1) {
             return;
@@ -213,6 +210,14 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
+    // Send received data frame to MainActivity, append it to log and process gear information //
+    private void processReceivedData(String data) {
+        updateGear(data);
+        sendDataBroadcastIntent(data);
+        appendLog(data);
+    }
+
+    
     // Start data logging to file //
     public void startDataLogging() {
         if(logFileBuffer != null) {
