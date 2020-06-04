@@ -34,6 +34,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
 
+import static android.bluetooth.BluetoothDevice.ACTION_ACL_DISCONNECTED;
+
 
 public class OverlayService extends Service implements View.OnTouchListener, View.OnClickListener {
     private WindowManager windowManager = null;
@@ -499,11 +501,10 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     public void onCreate() {
         super.onCreate();
         sendDataBroadcastIntent(TEST_DATAFRAME);
-        this.registerReceiver(broadcastReceiver, new IntentFilter("android.bluetooth.device.action.ACL_DISCONNECTED"));
+        this.registerReceiver(broadcastReceiver, new IntentFilter(ACTION_ACL_DISCONNECTED));
         setupOverlay();
         setupBluetoothReconnect();
     }
-
 
     // Destroy callback //
     @Override
