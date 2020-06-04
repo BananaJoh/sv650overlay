@@ -3,6 +3,7 @@ package de.bananajoh.sv650overlay;
 import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -28,6 +29,8 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import java.util.Set;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -182,8 +185,15 @@ public class MainActivity extends AppCompatActivity {
         boolean restoredDeviceSecure = sharedPreferences.getBoolean("deviceSecure", true);
 
         if(restoredDeviceAddress != null) {
-            overlayServiceBinding.connectBluetooth(restoredDeviceAddress, restoredDeviceSecure, true);
-            return;
+            Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+            for(BluetoothDevice device : pairedDevices) {
+                if(device.getAddress().equals(restoredDeviceAddress)) {
+                    overlayServiceBinding.connectBluetooth(restoredDeviceAddress, restoredDeviceSecure, true);
+                    return;
+                }
+            }
+            // Device not paired anymore, remove
+            sharedPreferences.edit().remove("deviceAddress").remove("deviceSecure").apply();
         }
 
         // No saved device available to connect to, show device list
