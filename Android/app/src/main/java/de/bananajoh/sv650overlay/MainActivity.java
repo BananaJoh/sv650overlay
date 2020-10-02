@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         case 32: {          // BATT
                             float fvalue = (value + 109) * 5 / 100.0f;
-                            gridArrayAdapter.add(Html.fromHtml("<b>" + DataInfo.ENTRIES[i].label + "</b><br>" + fvalue + DataInfo.ENTRIES[i].unit));
+                            gridArrayAdapter.add(Html.fromHtml("<b>" + DataInfo.ENTRIES[i].label + "</b><br>" + String.format("%.1f", fvalue) + DataInfo.ENTRIES[i].unit));
                             addValueToGrid = false;
                             break;
                         }
