@@ -1,5 +1,5 @@
 # SV650overlay
-Suzuki SV650AK8 motorcycle gear indicator and diagnostic data monitor using an ESP32, an Android app and Bluetooth connectivity
+Suzuki SV650AK7 motorcycle gear indicator and diagnostic data monitor using an ESP32, an Android app and Bluetooth connectivity
 
 ## Features
 * ESP32 reads diagnostic sensor data from bike ECU via K-Line (SDS protocol) and sends it via Bluetooth
@@ -7,11 +7,15 @@ Suzuki SV650AK8 motorcycle gear indicator and diagnostic data monitor using an E
   * Background service handles Bluetooth connection, receives data and processes gear information for overlay
   * Movable overlay displays current gear and connection status in 7-segment display look, on top of all other apps (e.g. navigation, music player)
   * App screens/activities to discover Bluetooth devices, control the background service, display and record data
+  <details><summary>Screenshots (click to expand)</summary>
+   <img src="doc/screenshots/Screenshot_Neutral.png" width="30%"></img>
+   <img src="doc/screenshots/Screenshot_1stGear.png" width="30%"></img>
+  </details>
 
 ## Motivation
 The Suzuki SV650 has no built-in gear indicator. If you want to have one, there are several solutions, e.g. modifying the speedo with a Multibot or buying an external gear position indicator. Neither soldering the speedo nor paying much money for another attachment to the handlebars satisfied me, so I looked for alternatives.  
 First finding was https://github.com/RaysceneNS/SV-650-GearPositionIndicator - an attempt to read the gear position sensor analog voltage directly with an ATtiny microcontroller. I built, but never installed it because I thought it could influence the signal for the ECU.  
-Later I found https://github.com/o5i/Datalogger - an Arduino based datalogger using the diagnostic interface of the bike (which is K-Line aka ISO 9141 with Suzuki specific KWP2000 aka ISO 14230 protocol implementation, called SDS). I had an ESP32 flying around for some time, so the idea of building something with wireless connectivity and an Android smartphone, which already had its place on my handlebars, grew. I flashed Arduino core for ESP32 and adapted the code for my needs and hardware (ESP32 with Bluetooth, SV650AK8).
+Later I found https://github.com/o5i/Datalogger - an Arduino based datalogger using the diagnostic interface of the bike (which is K-Line aka ISO 9141 with Suzuki specific KWP2000 aka ISO 14230 protocol implementation, called SDS). I had an ESP32 flying around for some time, so the idea of building something with wireless connectivity and an Android smartphone, which already had its place on my handlebars, grew. I flashed Arduino core for ESP32 and adapted the code for my needs and hardware (ESP32 with Bluetooth, SV650AK7).
 So here it is now - some conversions are still missing or inaccurate, but it is working overall.
 
 ## Hardware
