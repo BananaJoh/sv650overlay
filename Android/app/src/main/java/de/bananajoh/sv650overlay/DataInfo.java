@@ -3,8 +3,6 @@ package de.bananajoh.sv650overlay;
 
 public class DataInfo {
     public static final DataInfoEntry[] ENTRIES = {
-        new DataInfoEntry("6", "", false),
-        new DataInfoEntry("7", "", false),
         new DataInfoEntry("8", "", false),
         new DataInfoEntry("9", "", false),
         new DataInfoEntry("10", "", false),

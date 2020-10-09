@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
                         continue;
                     }
                     boolean addValueToGrid = true;
-                    switch (i + 6) {        // Correct offset to real data frame index
+                    switch (i + 8) {        // Correct offset to real data frame index
                         case 25: {          // RPM
                             value = value * 69 / 10 * 10;
                             break;
