@@ -1,12 +1,14 @@
 <resources>
     <string name="app_name">SV650overlay</string>
-    <string name="action_select_bluetooth_device">Select Bluetooth device</string>
+    <string name="action_select_bluetooth_device">Select device</string>
     <string name="action_rescan_bluetooth">Refresh</string>
     <string name="action_data_logging_start">Start data logging</string>
     <string name="action_data_logging_stop">Stop data logging</string>
     <string name="action_close">Close</string>
-    <string name="action_send_reset">Send reset command</string>
-    <string name="reset_command_sent">Reset command sent</string>
+    <string name="action_send_reset">Send reset</string>
+    <string name="action_send_start">Send start</string>
+    <string name="action_send_stop">Send stop</string>
+    <string name="command_sent">Command sent</string>
     <string name="overlay_request_permission">Please grant the overlay permission for this app, then restart it</string>
     <string name="overlay_service_binding_failed">Binding with overlay service failed</string>
     <string name="bluetooth_not_available">Bluetooth is not available, exiting</string>

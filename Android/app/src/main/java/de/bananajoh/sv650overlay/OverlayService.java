@@ -39,12 +39,14 @@ import static android.bluetooth.BluetoothDevice.ACTION_ACL_DISCONNECTED;
 
 public class OverlayService extends Service implements View.OnTouchListener, View.OnClickListener {
     private static final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    private static final long BLUETOOTH_RECONNECT_INTERVAL_MS = 20000;
-    private static final int COMMAND_RESET = 'R';
+    private static final long BLUETOOTH_RECONNECT_INTERVAL_MS = 15000;
+    private static final char COMMAND_RESET = 'r';
+    private static final char COMMAND_GO    = 'g';
+    private static final char COMMAND_STOP  = 's';
     private static final int GEAR_DATA_INDEX = 26;
-    private static final String TEST_DATAFRAME = "8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,"
-            + "23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,"
-            + "44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64";
+    private static final String TEST_DATAFRAME = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"
+            + "0,0,0,0,58,0,40,40,0,-109,0,0,0,0,0,0,0,0,0,0,0,"
+            + "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
 
     private WindowManager windowManager = null;
     private ImageButton overlayButton = null;
@@ -294,6 +296,15 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
         bluetoothReadBuffer = new byte[1024];
         bluetoothWorkerThread = new Thread(new Runnable() {
             public void run() {
+                if(bluetoothOutputStream != null) {
+                    try {
+                        bluetoothOutputStream.write(COMMAND_GO);
+                        bluetoothOutputStream.flush();
+                    } catch(final IOException ex) {
+                        Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
+                    }
+                }
+
                 while(!Thread.currentThread().isInterrupted() && !stopBluetoothWorkerThread) {
                     try {
                         int bytesAvailable = bluetoothInputStream.available();
@@ -335,19 +346,37 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Send command to reset the connected device //
+    // Tell connected device to reset //
     public void sendResetCommand() {
+        sendCommand(COMMAND_RESET);
+    }
+
+
+    // Tell connected device to start //
+    public void sendStartCommand() {
+        sendCommand(COMMAND_GO);
+    }
+
+
+    // Tell connected device to stop //
+    public void sendStopCommand() {
+        sendCommand(COMMAND_STOP);
+    }
+
+
+    // Send command to the connected device //
+    public void sendCommand(char command) {
         if(bluetoothOutputStream == null) {
             return;
         }
         try {
-            bluetoothOutputStream.write(COMMAND_RESET);
+            bluetoothOutputStream.write(command);
             bluetoothOutputStream.flush();
         } catch(final IOException ex) {
             Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
             return;
         }
-        Toast.makeText(this, R.string.reset_command_sent, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.command_sent, Toast.LENGTH_SHORT).show();
     }
 
 
@@ -441,7 +470,6 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     public void run() {
                         startBluetoothWorkerThread();
                         overlayButton.setImageResource(R.drawable.sevenseg_empty);
-                        Toast.makeText(overlayButton.getContext(), "Connected to " + bluetoothDevice.getName(), Toast.LENGTH_SHORT).show();
                     }
                 });
                 bluetoothBusy = false;

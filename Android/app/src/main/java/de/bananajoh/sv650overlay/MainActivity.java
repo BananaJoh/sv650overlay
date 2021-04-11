@@ -55,6 +55,12 @@ public class MainActivity extends AppCompatActivity {
             // No extra intent action check as there is only one filter registered
             String data = intent.getStringExtra("data");
             String values[] = data.split(",", DataInfo.ENTRIES.length);
+
+            if(values.length < DataInfo.ENTRIES.length) {
+                Toast.makeText(context, data, Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             gridArrayAdapter.clear();
             for(int i = 0; i < values.length; i++) {
                 if(DataInfo.ENTRIES[i].show) {
@@ -341,6 +347,10 @@ public class MainActivity extends AppCompatActivity {
             return true;
         } else if(id == R.id.action_send_reset) {
             overlayServiceBinding.sendResetCommand();
+        } else if(id == R.id.action_send_start) {
+            overlayServiceBinding.sendStartCommand();
+        } else if(id == R.id.action_send_stop) {
+            overlayServiceBinding.sendStopCommand();
         } else if(id == R.id.action_toggle_data_logging) {
             if(!overlayServiceBinding.isDataLogging()) {
                 overlayServiceBinding.startDataLogging();
