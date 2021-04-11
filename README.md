@@ -13,10 +13,11 @@ Suzuki SV650AK7 motorcycle gear indicator and diagnostic data monitor using an E
   </details>
 
 ## Motivation
-The Suzuki SV650 has no built-in gear indicator. If you want to have one, there are several solutions, e.g. modifying the speedo with a Multibot or buying an external gear position indicator. Neither soldering the speedo nor paying much money for another attachment to the handlebars satisfied me, so I looked for alternatives.  
-First finding was https://github.com/RaysceneNS/SV-650-GearPositionIndicator - an attempt to read the gear position sensor analog voltage directly with an ATtiny microcontroller. I built, but never installed it because I thought it could influence the signal for the ECU.  
-Later I found https://github.com/o5i/Datalogger - an Arduino based datalogger using the diagnostic interface of the bike (which is K-Line aka ISO 9141 with Suzuki specific KWP2000 aka ISO 14230 protocol implementation, called SDS). I had an ESP32 flying around for some time, so the idea of building something with wireless connectivity and an Android smartphone, which already had its place on my handlebars, grew. I flashed Arduino core for ESP32 and adapted the code for my needs and hardware (ESP32 with Bluetooth, SV650AK7).
-So here it is now - some conversions are still missing or inaccurate, but it is working overall.
+The Suzuki SV650 has no built-in gear indicator. There are off-the-shelf solutions to add one, like the Multibot or external gear position indicators, but they seemed not really appealing to me.  
+So I looked further and found https://github.com/RaysceneNS/SV-650-GearPositionIndicator - an attempt to read the gear position sensor analog voltage directly with an ATtiny microcontroller. I built, but never installed it because I feared it would affect the signal for the ECU.  
+Later on I discovered https://github.com/o5i/Datalogger - an Arduino based datalogger using the diagnostic interface of the bike (K-Line aka ISO 9141 with Suzuki specific KWP2000 aka ISO 14230 protocol implementation, called SDS). I took an ESP32, ported and adapted the code and tried it out.  
+It ran so flawlessly that I thought it would be cool to extend this with an app displaying the data on my smartphone.  
+So here it is now - not only showing the gear, but also some additional diagnostic data. Some conversions are missing or inaccurate, but the main objective is achieved.
 
 ## Hardware
 * ESP32-DevKitC (WROOM32)
@@ -25,25 +26,25 @@ So here it is now - some conversions are still missing or inaccurate, but it is 
   * Tx/Rx pins are connected to ESP32 UART2 (hardware serial, GPIO 16/17, Pin 25/27)
 * Diode 1N4007 (input)
 * Resistor 510 Ohm (K-Line pull-up)
-* For schematics, refer to https://github.com/iwanders/OBD9141 and https://github.com/aster94/Keyword-Protocol-2000 (works fine for me with one diode and without the capacitors)
+* For schematics, refer to https://github.com/iwanders/OBD9141 and https://github.com/aster94/Keyword-Protocol-2000 (works fine for me with one diode and without capacitors)
 * 6-pin MT .090 Sealed connector (diagnostic interface of the bike)
   * Diagostic connector pinout (base color/line color):
     * Black/white: GND
     * Orange/green: switched +12V
-    * White/red: Dealer mode (when connected to GND)
+    * White/red: dealer mode (when connected to GND)
     * Gray/red: K-Line
 
-## Software
-* ESP32 firmware (Arduino sketch)
-  * Arduino core for ESP32 https://github.com/espressif/arduino-esp32
-* Android app
-  * Android Studio and SDK tools https://developer.android.com/studio/
+## Software and Frameworks
+* ESP32 firmware (ESP-IDF)
+  * https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/
+* Android app (Android Studio and SDK tools)
+  * https://developer.android.com/studio/
 
 ## Additional Information
-* Tested on Android 9
+* Tested on Android 9 and 10
 * Designed for Sony Xperia XZ2 Compact screen (resolution 1080x2160 px FHD+)
 * Recorded log files are stored in internal storage (/storage/emulated/0/Android/data/de.bananajoh.sv650overlay/files/)
-* K-Line post frame delay (T_04) was increased to 200 ms (initially 50 ms), so the resulting refresh rate is about 3-4 Hz instead of 6-7 Hz - reducing load on ESP32 (cutouts when air temperature was high) and log file size
+* K-Line post frame delay (T_04) was increased to 200 ms (initially 50 ms), so the resulting refresh rate is about 3-4 Hz instead of 6-7 Hz - reducing load (aka  thermal cutouts) and log file size
 
 ## References
 * SDS protocol thread on ECU hacking forum: https://ecuhacking.activeboard.com/t22573776/sds-protocol/
