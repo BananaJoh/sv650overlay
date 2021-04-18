@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
 
@@ -40,13 +41,18 @@ import static android.bluetooth.BluetoothDevice.ACTION_ACL_DISCONNECTED;
 public class OverlayService extends Service implements View.OnTouchListener, View.OnClickListener {
     private static final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static final long BLUETOOTH_RECONNECT_INTERVAL_MS = 15000;
-    private static final char COMMAND_RESET = 'r';
-    private static final char COMMAND_GO    = 'g';
-    private static final char COMMAND_STOP  = 's';
-    private static final int GEAR_DATA_INDEX = 26;
-    private static final String TEST_DATAFRAME = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"
-            + "0,0,0,0,58,0,40,40,0,-109,0,0,0,0,0,0,0,0,0,0,0,"
-            + "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
+    private static final byte COMMAND_RESET = (byte) 0xFF;
+    private static final byte COMMAND_GO    = 0x01;
+    private static final byte COMMAND_STOP  = 0x00;
+    private static final int GEAR_DATA_INDEX = 28;
+    private static final byte[] TEST_DATAFRAME = {
+            0x01, 59, 0,  0,  0, 0, 0, 0, 0, 0,
+            0,     0, 0,  0,  0, 0, 0, 0, 0, 0,
+            0,    58, 0, 40, 40, 0, 0, 0, 0, 0,
+            0,     0, 0,  0,  0, 0, 0, 0, 0, 0,
+            0,     0, 0,  0,  0, 0, 0, 0, 0, 0,
+            0,     0, 0,  0,  0, 0, 0, 0, 0
+    };
 
     private WindowManager windowManager = null;
     private ImageButton overlayButton = null;
@@ -66,6 +72,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     private Thread bluetoothWorkerThread = null;
     private byte[] bluetoothReadBuffer = {0};
     private int bluetoothReadBufferPosition = 0;
+    private int bluetoothReadDataLength = 0;
     private volatile boolean stopBluetoothWorkerThread = true;
     private String lastDeviceAddress = null;
     private boolean lastDeviceSecure = false;
@@ -74,7 +81,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     private BufferedWriter logFileBuffer = null;
 
 
-    // Class for clients to access this service
+    /* Class for clients to access this service */
     public class LocalBinder extends Binder {
         OverlayService getService() {
             return OverlayService.this;
@@ -83,11 +90,11 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     private final IBinder binder = new LocalBinder();
 
 
-    // Listen for Bluetooth device disconnect broadcasts //
+    /* Listen for Bluetooth device disconnect broadcasts */
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            // No extra intent action check as there is only one filter registered
+            /* No extra intent action check as there is only one filter registered */
             BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
             if(device.getAddress().equals(lastDeviceAddress)) {
                 Toast.makeText(overlayButton.getContext(), "Connection to " + device.getName() + " lost", Toast.LENGTH_LONG).show();
@@ -97,16 +104,16 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     };
 
 
-    // Constructor //
+    /* Constructor */
     public OverlayService() {
     }
 
 
-    // Setup overlay //
+    /* Setup overlay */
     private void setupOverlay() {
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
 
-        // Setup image button as overlay widget
+        /* Setup image button as overlay widget */
         overlayButton = new ImageButton(this);
         overlayButton.setImageResource(R.drawable.sevenseg_dot);
         overlayButton.setPadding(0, 0, 0, 0);
@@ -115,14 +122,14 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
         overlayButton.setOnTouchListener(this);
         overlayButton.setOnClickListener(this);
 
-        // Retrieve width and height of image
+        /* Retrieve width and height of image */
         BitmapFactory.Options dimensions = new BitmapFactory.Options();
         dimensions.inJustDecodeBounds = true;
         BitmapFactory.decodeResource(getResources(), R.drawable.sevenseg_empty, dimensions);
         int imageWidth = dimensions.outWidth;
         int imageHeight = dimensions.outHeight;
 
-        // Add view for the image button to the window manager
+        /* Add view for the image button to the window manager */
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL, PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.CENTER_HORIZONTAL | Gravity.TOP;
         params.x = 0;
@@ -131,7 +138,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
         params.height = imageHeight;
         windowManager.addView(overlayButton, params);
 
-        // Add another invisible view as reference point for handling touchscreen move events
+        /* Add another invisible view as reference point for handling touchscreen move events */
         topCenterView = new View(this);
         WindowManager.LayoutParams topCenterParams = new WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL, PixelFormat.TRANSLUCENT);
         topCenterParams.gravity = Gravity.CENTER_HORIZONTAL | Gravity.TOP;
@@ -143,7 +150,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Setup Bluetooth auto reconnect to last device //
+    /* Setup Bluetooth auto reconnect to last device */
     private void setupBluetoothReconnect() {
         bluetoothReconnectHandler = new Handler();
         bluetoothReconnect = new Runnable() {
@@ -158,63 +165,35 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Retrieve gear out of received data for overlay //
-    private void updateGear(String data) {
-        String values[] = data.split(",");
-        if(values.length < GEAR_DATA_INDEX+1) {
+    /* Retrieve gear out of received data for overlay */
+    private void updateGear(byte[] data) {
+        if(data.length < (GEAR_DATA_INDEX + 1)) {
             return;
         }
-        int gear = -1;
-        try {
-            gear = Integer.parseInt(values[GEAR_DATA_INDEX]);
-        } catch(NumberFormatException ex) {
-            return;
-        }
-        switch(gear) {
-            case 0: {
-                overlayButton.setImageResource(R.drawable.sevenseg_minus);
-                break;
-            }
-            case 1: {
-                overlayButton.setImageResource(R.drawable.sevenseg_1);
-                break;
-            }
-            case 2: {
-                overlayButton.setImageResource(R.drawable.sevenseg_2);
-                break;
-            }
-            case 3: {
-                overlayButton.setImageResource(R.drawable.sevenseg_3);
-                break;
-            }
-            case 4: {
-                overlayButton.setImageResource(R.drawable.sevenseg_4);
-                break;
-            }
-            case 5: {
-                overlayButton.setImageResource(R.drawable.sevenseg_5);
-                break;
-            }
-            case 6: {
-                overlayButton.setImageResource(R.drawable.sevenseg_6);
-                break;
-            }
-            default: {
-                overlayButton.setImageResource(R.drawable.sevenseg_empty);
-            }
+        switch(data[GEAR_DATA_INDEX]) {
+            case 0:  overlayButton.setImageResource(R.drawable.sevenseg_minus); break;
+            case 1:  overlayButton.setImageResource(R.drawable.sevenseg_1);     break;
+            case 2:  overlayButton.setImageResource(R.drawable.sevenseg_2);     break;
+            case 3:  overlayButton.setImageResource(R.drawable.sevenseg_3);     break;
+            case 4:  overlayButton.setImageResource(R.drawable.sevenseg_4);     break;
+            case 5:  overlayButton.setImageResource(R.drawable.sevenseg_5);     break;
+            case 6:  overlayButton.setImageResource(R.drawable.sevenseg_6);     break;
+            default: overlayButton.setImageResource(R.drawable.sevenseg_empty);
         }
     }
 
 
-    // Send received data frame to MainActivity, append it to log and process gear information //
-    private void processReceivedData(String data) {
-        updateGear(data);
+    /* Send received data frame to MainActivity, append it to log and process gear information */
+    private void processReceivedData(byte[] data) {
+        if(data.length > 0 && data[0] == 0x01) {
+            updateGear(data);
+        }
         sendDataBroadcastIntent(data);
         appendLog(data);
     }
 
 
-    // Start data logging to file //
+    /* Start data logging to file */
     public void startDataLogging() {
         if(logFileBuffer != null) {
             return;
@@ -242,7 +221,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Stop data logging to file //
+    /* Stop data logging to file */
     public void stopDataLogging() {
         if(logFileBuffer == null) {
             return;
@@ -257,20 +236,29 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Check if data is written to log //
+    /* Check if data is written to log */
     public boolean isDataLogging() {
         return logFileBuffer != null;
     }
 
 
-    // Write sensor data to end of log file //
-    public void appendLog(String text) {
-        if(logFileBuffer == null) {
+    /* Write sensor data to end of log file */
+    public void appendLog(byte[] data) {
+        if(logFileBuffer == null || data.length < 2) {
             return;
         }
         try {
-            String timestamp = new SimpleDateFormat("yyyyMMdd,HHmmssSSS,").format(new Date());
-            logFileBuffer.append(timestamp + text);
+            String logLine = new SimpleDateFormat("yyyyMMdd,HHmmssSSS").format(new Date());
+            if(data[0] == 0x02) {
+                logLine += "," + new String(Arrays.copyOfRange(data, 2, data.length), "US-ASCII");
+            } else if(data[0] == 0x01) {
+                /* Just append the actual data, so start at index 2 */
+                for(int i = 2; i < data.length; i++) {
+                    /* As java bytes are signed, mask the byte to prevent sign extension and get an unsigned value */
+                    logLine += "," + Integer.toString(data[i] & 0xFF);
+                }
+            }
+            logFileBuffer.append(logLine);
             logFileBuffer.newLine();
         } catch(IOException e) {
             e.printStackTrace();
@@ -278,21 +266,21 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Send data to main activity //
-    private void sendDataBroadcastIntent(String data) {
+    /* Send data to main activity */
+    private void sendDataBroadcastIntent(byte[] data) {
         Intent intent = new Intent(String.valueOf(R.string.bluetooth_message_intent_action));
         intent.putExtra("data", data);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
 
-    // Setup and start a worker thread for receiving Bluetooth data
+    /* Setup and start a worker thread for receiving Bluetooth data */
     private void startBluetoothWorkerThread() {
         final Handler handler = new Handler();
-        final byte delimiter = 10; // This is the ASCII code for a newline character
 
         stopBluetoothWorkerThread = false;
         bluetoothReadBufferPosition = 0;
+        bluetoothReadDataLength = 0;
         bluetoothReadBuffer = new byte[1024];
         bluetoothWorkerThread = new Thread(new Runnable() {
             public void run() {
@@ -312,22 +300,23 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                             byte[] packetBytes = new byte[bytesAvailable];
                             bluetoothInputStream.read(packetBytes);
                             for(int i = 0; i < bytesAvailable; i++) {
-                                byte b = packetBytes[i];
-                                if(b == delimiter) {
-                                    byte[] encodedBytes = new byte[bluetoothReadBufferPosition];
-                                    System.arraycopy(bluetoothReadBuffer, 0, encodedBytes, 0, encodedBytes.length);
-                                    final String data = new String(encodedBytes, "US-ASCII");
+                                bluetoothReadBuffer[bluetoothReadBufferPosition] = packetBytes[i];
+                                if(bluetoothReadBufferPosition == 1) {
+                                    bluetoothReadDataLength = packetBytes[i];
+                                } else if(bluetoothReadBufferPosition > 1 && bluetoothReadBufferPosition >= (bluetoothReadDataLength - 1)) {
+                                    final byte[] data = new byte[bluetoothReadBufferPosition + 1];
+                                    System.arraycopy(bluetoothReadBuffer, 0, data, 0, data.length);
                                     bluetoothReadBufferPosition = 0;
+                                    bluetoothReadDataLength     = 0;
 
                                     handler.post(new Runnable() {
                                         public void run() {
-                                            //Toast.makeText(overlayButton.getContext(), data, Toast.LENGTH_SHORT).show();
                                             processReceivedData(data);
                                         }
                                     });
-                                } else {
-                                    bluetoothReadBuffer[bluetoothReadBufferPosition++] = b;
+                                    continue;
                                 }
+                                bluetoothReadBufferPosition++;
                             }
                         }
                     } catch(final IOException ex) {
@@ -346,26 +335,26 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Tell connected device to reset //
+    /* Tell connected device to reset */
     public void sendResetCommand() {
         sendCommand(COMMAND_RESET);
     }
 
 
-    // Tell connected device to start //
+    /* Tell connected device to start */
     public void sendStartCommand() {
         sendCommand(COMMAND_GO);
     }
 
 
-    // Tell connected device to stop //
+    /* Tell connected device to stop */
     public void sendStopCommand() {
         sendCommand(COMMAND_STOP);
     }
 
 
-    // Send command to the connected device //
-    public void sendCommand(char command) {
+    /* Send command to the connected device */
+    public void sendCommand(byte command) {
         if(bluetoothOutputStream == null) {
             return;
         }
@@ -380,7 +369,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Connect to Bluetooth device with serial port profile //
+    /* Connect to Bluetooth device with serial port profile */
     public void connectBluetooth(final String deviceAddress, final boolean deviceSecure, final boolean invokeAutoReconnect) {
         final Handler handler = new Handler();
         new Thread(new Runnable() {
@@ -405,14 +394,14 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     return;
                 }
 
-                // Save data to for auto reconnect and activate reconnecting
+                /* Save data to for auto reconnect and activate reconnecting */
                 lastDeviceAddress = deviceAddress;
                 lastDeviceSecure = deviceSecure;
                 if(invokeAutoReconnect) {
                     bluetoothReconnectHandler.postDelayed(bluetoothReconnect, BLUETOOTH_RECONNECT_INTERVAL_MS);
                 }
 
-                // Get the BluetoothDevice object and attempt to connect to the device
+                /* Get the BluetoothDevice object and attempt to connect to the device */
                 bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
                 try {
                     bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(SPP_UUID);
@@ -465,7 +454,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                     return;
                 }
 
-                // Connection established
+                /* Connection established */
                 handler.post(new Runnable() {
                     public void run() {
                         startBluetoothWorkerThread();
@@ -478,7 +467,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Check if Bluetooth is connected //
+    /* Check if Bluetooth is connected */
     public boolean isBluetoothConnected() {
         if(bluetoothSocket == null) {
             return false;
@@ -487,7 +476,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Disconnect Bluetooth device if connected //
+    /* Disconnect Bluetooth device if connected */
     public void disconnectBluetooth(boolean keepReconnecting) {
         if(!keepReconnecting) {
             bluetoothReconnectHandler.removeCallbacksAndMessages(null);
@@ -535,14 +524,14 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Bind callback //
+    /* Bind callback */
     @Override
     public IBinder onBind(Intent intent) {
         return binder;
     }
 
 
-    // Create callback //
+    /* Create callback */
     @Override
     public void onCreate() {
         super.onCreate();
@@ -553,7 +542,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Destroy callback //
+    /* Destroy callback */
     @Override
     public void onDestroy() {
         this.unregisterReceiver(broadcastReceiver);
@@ -570,50 +559,51 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Overlay widget touch callback //
+    /* Overlay widget touch callback */
     @Override
     public boolean onTouch(View v, MotionEvent event) {
         if(event.getAction() == MotionEvent.ACTION_DOWN) {
-            // Retrieve absolute position of down event
+            /* Retrieve absolute position of down event */
             float downEventX = event.getRawX();
             float downEventY = event.getRawY();
 
             widgetMoving = false;
 
-            // Retrieve absolute (top center) position of widget
+            /* Retrieve absolute (top center) position of widget */
             int[] location = new int[2];
             overlayButton.getLocationOnScreen(location);
-            initialWidgetX = location[0] + overlayButton.getWidth()/2; // Offset to horizontal center of widget as this is the reference point (invisible view)
+            /* Offset to horizontal center of widget as this is the reference point (invisible view) */
+            initialWidgetX = location[0] + overlayButton.getWidth()/2;
             initialWidgetY = location[1];
 
-            // Calculate relative position of touch event to top center position of widget
+            /* Calculate relative position of touch event to top center position of widget */
             eventRelativeX = initialWidgetX - downEventX;
             eventRelativeY = initialWidgetY - downEventY;
         } else if(event.getAction() == MotionEvent.ACTION_MOVE) {
-            // Retrieve absolute position of move event
+            /* Retrieve absolute position of move event */
             float moveEventX = event.getRawX();
             float moveEventY = event.getRawY();
 
-            // Calculate new relative position
+            /* Calculate new relative position */
             WindowManager.LayoutParams params = (WindowManager.LayoutParams) overlayButton.getLayoutParams();
             int newX = (int) (eventRelativeX + moveEventX);
             int newY = (int) (eventRelativeY + moveEventY);
 
-            // Nothing to do if differences in both directions without prior movement are too small
+            /* Nothing to do if differences in both directions without prior movement are too small */
             if(Math.abs(newX - initialWidgetX) < 1 && Math.abs(newY - initialWidgetY) < 1 && !widgetMoving) {
                 return false;
             }
 
-            // Retrieve absolute position of invisible view
+            /* Retrieve absolute position of invisible view */
             int[] topCenterLocationOnScreen = new int[2];
             topCenterView.getLocationOnScreen(topCenterLocationOnScreen);
 
-            // Calculate and apply new absolute position of overlay widget with position of invisible view
+            /* Calculate and apply new absolute position of overlay widget with position of invisible view */
             params.x = newX - (topCenterLocationOnScreen[0]);
             params.y = newY - (topCenterLocationOnScreen[1]);
             windowManager.updateViewLayout(overlayButton, params);
 
-            // Set flag that widget has been moved
+            /* Set flag that widget has been moved */
             widgetMoving = true;
         } else if(event.getAction() == MotionEvent.ACTION_UP) {
             if(widgetMoving) {
@@ -624,7 +614,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     }
 
 
-    // Overlay widget click callback //
+    /* Overlay widget click callback */
     @Override
     public void onClick(View v) {
         Intent mainActivityIntent = new Intent(this, MainActivity.class);

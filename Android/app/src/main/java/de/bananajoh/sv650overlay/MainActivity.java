@@ -30,6 +30,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.Set;
 
 
@@ -46,84 +48,96 @@ public class MainActivity extends AppCompatActivity {
     private ArrayAdapter<Spanned> gridArrayAdapter;
     private SharedPreferences sharedPreferences = null;
     private Menu menuMain = null;
+    private int dataInfoMaxShowAtPos = -1;
 
 
-    // Listen for device message broadcasts from overlay service //
+    /* Listen for device message broadcasts from overlay service */
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            // No extra intent action check as there is only one filter registered
-            String data = intent.getStringExtra("data");
-            String values[] = data.split(",", DataInfo.ENTRIES.length);
-
-            if(values.length < DataInfo.ENTRIES.length) {
-                Toast.makeText(context, data, Toast.LENGTH_SHORT).show();
+            /* No extra intent action check as there is only one filter registered */
+            byte[] data = intent.getByteArrayExtra("data");
+            if(data.length < 2) {
                 return;
             }
 
-            gridArrayAdapter.clear();
-            for(int i = 0; i < values.length; i++) {
-                if(DataInfo.ENTRIES[i].show) {
-                    int value = 0;
-                    try {
-                        value = Integer.parseInt(values[i]);
-                    } catch (NumberFormatException ex) {
-                        continue;
+            if(data[0] == 0x02) {
+                /* Handle text messages (type 0x02) */
+                try {
+                    final String text = new String(Arrays.copyOfRange(data, 2, data.length), "US-ASCII");
+                    Toast.makeText(context, text, Toast.LENGTH_SHORT).show();
+                } catch (UnsupportedEncodingException ex) {
+                    Toast.makeText(context, ex.toString(), Toast.LENGTH_LONG).show();
+                }
+            } else if(data[0] == 0x01) {
+                /* Convert values from data messages (type 0x01) and collect them in the right order */
+                String entries[] = new String[dataInfoMaxShowAtPos + 1];
+                for (int i = 0; (i + 2) < data.length; i++) {
+                    if (i < DataInfo.ENTRIES.length && DataInfo.ENTRIES[i].showAtPos > -1) {
+                        entries[DataInfo.ENTRIES[i].showAtPos] = "<b>" + DataInfo.ENTRIES[i].label + "</b><br>";
+                        /* As java bytes are signed, mask the byte to prevent sign extension and get an unsigned value */
+                        int value = data[i + 2] & 0xFF;
+                        /* Data frame index is offset +8 */
+                        switch (i) {
+                            case 17: { /* RPM */
+                                value = value * 69 / 10 * 10;
+                                break;
+                            }
+                            case 19: { /* TPS */
+                                value = (value - 58) * 6 / 10;
+                                break;
+                            }
+                            case 21:   /* ECT */
+                            case 22: { /* IAT */
+                                value = value - 40;
+                                break;
+                            }
+                            case 24: { /* BATT */
+                                float fvalue = 0.0f;
+                                if (value > 0) {
+                                    fvalue = (value + 109) * 5 / 100.0f;
+                                }
+                                entries[DataInfo.ENTRIES[i].showAtPos] += String.format("%.1f", fvalue) + DataInfo.ENTRIES[i].unit;
+                                continue;
+                            }
+                        }
+                        entries[DataInfo.ENTRIES[i].showAtPos] += value + DataInfo.ENTRIES[i].unit;
                     }
-                    boolean addValueToGrid = true;
-                    switch (i + 8) {        // Correct offset to real data frame index
-                        case 25: {          // RPM
-                            value = value * 69 / 10 * 10;
-                            break;
-                        }
-                        case 27: {          // TPS
-                            value = (value - 58) * 6 / 10;
-                            break;
-                        }
-                        case 29:            // ECT
-                        case 30: {          // IAT
-                            value = value - 40;
-                            break;
-                        }
-                        case 32: {          // BATT
-                            float fvalue = (value + 109) * 5 / 100.0f;
-                            gridArrayAdapter.add(Html.fromHtml("<b>" + DataInfo.ENTRIES[i].label + "</b><br>" + String.format("%.1f", fvalue) + DataInfo.ENTRIES[i].unit));
-                            addValueToGrid = false;
-                            break;
-                        }
-                    }
-                    if (addValueToGrid) {
-                        gridArrayAdapter.add(Html.fromHtml("<b>" + DataInfo.ENTRIES[i].label + "</b><br>" + value + DataInfo.ENTRIES[i].unit));
-                    }
+                }
+
+                /* Clear and rebuild the display grid */
+                gridArrayAdapter.clear();
+                for(int i = 0; i < entries.length; i++) {
+                    gridArrayAdapter.add(Html.fromHtml(entries[i]));
                 }
             }
         }
     };
 
 
-    // Binding to the local service for intercom
+    /* Binding to the local service for intercom */
     private ServiceConnection overlayServiceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
-            // This is called when the connection with the service has been
-            // established, giving us the service object we can use to
-            // interact with the service.  Because we have bound to a explicit
-            // service that we know is running in our own process, we can
-            // cast its IBinder to a concrete class and directly access it.
+            /* This is called when the connection with the service has been
+               established, giving us the service object we can use to
+               interact with the service.  Because we have bound to a explicit
+               service that we know is running in our own process, we can
+               cast its IBinder to a concrete class and directly access it. */
             overlayServiceBinding = ((OverlayService.LocalBinder)service).getService();
             bluetoothReconnectOrDeviceList();
         }
 
         public void onServiceDisconnected(ComponentName className) {
-            // This is called when the connection with the service has been
-            // unexpectedly disconnected -- that is, its process crashed.
-            // Because it is running in our same process, we should never
-            // see this happen.
+            /* This is called when the connection with the service has been
+               unexpectedly disconnected -- that is, its process crashed.
+               Because it is running in our same process, we should never
+               see this happen. */
             overlayServiceBinding = null;
         }
     };
 
 
-    // Check permission to draw over other apps //
+    /* Check permission to draw over other apps */
     private boolean overlayPermissionGranted() {
         if(!Settings.canDrawOverlays(this)) {
             Intent permissionIntent = new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
@@ -136,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // Check if Bluetooth adapter is available and activated //
+    /* Check if Bluetooth adapter is available and activated */
     private boolean bluetoothReady() {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if(bluetoothAdapter == null) {
@@ -159,7 +173,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // Check fulfillment of necessary requirements and if so, start overlay service //
+    /* Check fulfillment of necessary requirements and if so, start overlay service */
     private void startOverlayServiceIfRequirementsFulfilled() {
         if(!overlayPermissionGranted()) {
             return;
@@ -174,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // List paired and discovered Bluetooth devices //
+    /* List paired and discovered Bluetooth devices */
     public void showBluetoothDeviceList() {
         Intent deviceListIntent = new Intent(this, DeviceListActivity.class);
         startActivityForResult(deviceListIntent, CODE_REQUEST_CONNECT_DEVICE_SECURE);
@@ -182,7 +196,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // Try to connect to last connected device if it is still paired //
+    /* Try to connect to last connected device if it is still paired */
     private void bluetoothReconnectOrDeviceList() {
         if(overlayServiceBinding.isBluetoothConnected()) {
             return;
@@ -198,16 +212,16 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
             }
-            // Device not paired anymore, remove
+            /* Device not paired anymore, remove */
             sharedPreferences.edit().remove("deviceAddress").remove("deviceSecure").apply();
         }
 
-        // No saved device available to connect to, show device list
+        /* No saved device available to connect to, show device list */
         showBluetoothDeviceList();
     }
 
 
-    // Change GUI elements responsible for starting/stopping log recording according to logging state //
+    /* Change GUI elements responsible for starting/stopping log recording according to logging state */
     private void guiSetLogging(boolean on) {
         if(on) {
             menuMain.findItem(R.id.action_toggle_data_logging).setTitle(R.string.action_data_logging_stop);
@@ -219,22 +233,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // ActivityResult callback //
+    /* ActivityResult callback */
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch(requestCode) {
-            case CODE_REQUEST_ENABLE_BLUETOOTH: {        // When the request to enable Bluetooth returns
-                if (resultCode == Activity.RESULT_OK) {  // Bluetooth is now enabled
+            case CODE_REQUEST_ENABLE_BLUETOOTH: {
+                /* When the request to enable Bluetooth returns */
+                if(resultCode == Activity.RESULT_OK) {
+                    /* Bluetooth is now enabled */
                     startOverlayServiceIfRequirementsFulfilled();
-                } else {                                 // User did not enable Bluetooth or an error occurred
+                } else {
+                    /* User did not enable Bluetooth or an error occurred */
                     Toast.makeText(this, R.string.bluetooth_not_activated, Toast.LENGTH_LONG).show();
                     finish();
                 }
                 break;
             }
-            case CODE_REQUEST_CONNECT_DEVICE_SECURE: {   // When DeviceListActivity returns with a device to connect
-                if (resultCode == Activity.RESULT_OK) {
+            case CODE_REQUEST_CONNECT_DEVICE_SECURE: {
+                /* When DeviceListActivity returns with a device to connect */
+                if(resultCode == Activity.RESULT_OK) {
                     Bundle extras = data.getExtras();
-                    if (extras != null) {
+                    if(extras != null) {
                         String deviceAddress = extras.getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
                         overlayServiceBinding.connectBluetooth(deviceAddress, true, true);
                         sharedPreferences.edit().putString("deviceAddress", deviceAddress).putBoolean("deviceSecure", true).apply();
@@ -242,10 +260,11 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
             }
-            case CODE_REQUEST_CONNECT_DEVICE_INSECURE: { // When DeviceListActivity returns with a device to connect
-                if (resultCode == Activity.RESULT_OK) {
+            case CODE_REQUEST_CONNECT_DEVICE_INSECURE: {
+                /* When DeviceListActivity returns with a device to connect */
+                if(resultCode == Activity.RESULT_OK) {
                     Bundle extras = data.getExtras();
-                    if (extras != null) {
+                    if(extras != null) {
                         String deviceAddress = extras.getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
                         overlayServiceBinding.connectBluetooth(deviceAddress, false, true);
                         sharedPreferences.edit().putString("deviceAddress", deviceAddress).putBoolean("deviceSecure", false).apply();
@@ -257,7 +276,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // Permission request callback //
+    /* Permission request callback */
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         switch(requestCode) {
@@ -274,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // Create callback //
+    /* Create callback */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -293,10 +312,17 @@ public class MainActivity extends AppCompatActivity {
 
         overlayService = new Intent(this, OverlayService.class);
         startOverlayServiceIfRequirementsFulfilled();
+
+        /* Retrieve the maximum show-at position of all data fields as help for building the display grid */
+        for(int i = 0; i < DataInfo.ENTRIES.length; i++) {
+            if (DataInfo.ENTRIES[i].showAtPos > dataInfoMaxShowAtPos) {
+                dataInfoMaxShowAtPos = DataInfo.ENTRIES[i].showAtPos;
+            }
+        }
     }
 
 
-    // Destroy callback //
+    /* Destroy callback */
     @Override
     public void onDestroy() {
         unbindService(overlayServiceConnection);
@@ -304,7 +330,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // Resume callback //
+    /* Resume callback */
     @Override
     public void onResume() {
         super.onResume();
@@ -312,7 +338,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // Pause callback //
+    /* Pause callback */
     @Override
     protected void onPause() {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
@@ -320,10 +346,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // Options menu creation callback //
+    /* Options menu creation callback */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
+        /* Inflate the menu; this adds items to the action bar if it is present. */
         getMenuInflater().inflate(R.menu.menu_main, menu);
         menuMain = menu;
         if(overlayServiceBinding != null) {
@@ -333,12 +359,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // Options menu item selected callback //
+    /* Options menu item selected callback */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
+        /* Handle action bar item clicks here. The action bar will
+           automatically handle clicks on the Home/Up button, so long
+           as you specify a parent activity in AndroidManifest.xml. */
         int id = item.getItemId();
 
         if(id == R.id.action_select_bluetooth_device) {

@@ -29,9 +29,8 @@
 /* Threshold for checksum mismatches in a row before trying to restart session */
 #define KLINE_ERROR_THRESHOLD      5
 /* Buffer sizes */
-#define STRBUF_SIZE               20
-#define DATASTR_SIZE             300
-#define RXDATA_SIZE              100
+#define BT_TX_BUFFER_SIZE         70
+#define KLINE_RX_BUFFER_SIZE     100
 #define UART_RX_BUFFER_SIZE      256
 /* Bluetooth names */
 #define SPP_SERVER_NAME       "SPP_SERVER"
@@ -42,39 +41,45 @@
 #define TIMER_SCALE_MS        (TIMER_BASE_CLK / TIMER_DIVIDER / 1000)
 
 
+/* Message content types */
+enum {
+	CONTENT_TYPE_DATA = 0x01,
+	CONTENT_TYPE_TEXT = 0x02
+};
+
+
 /* K-Line states */
 enum kline_states {
 	INIT,
 	START_SESSION,
 	ACTIVE
-} static          kline_state                 = INIT;
+} static          kline_state                          = INIT;
 /* Protocol handling variables */
-static int64_t    time_us                     = 0;
-static int64_t    kline_last_eof_us           = 0;
-static int64_t    kline_fastinit_start_us     = 0;
-static int64_t    kline_watchdog_us           = 0;
-static bool       kline_running               = false;
+static int64_t    time_us                              = 0;
+static int64_t    kline_last_eof_us                    = 0;
+static int64_t    kline_fastinit_start_us              = 0;
+static int64_t    kline_watchdog_us                    = 0;
+static bool       kline_running                        = false;
 /* Counter and buffer variables */
-static uint8_t    kline_err_cntr              = 0;
-static uint8_t    kline_out_cntr              = 0;
-static uint8_t    kline_in_cntr               = 0;
-static uint8_t    kline_in_bytes[RXDATA_SIZE] = { 0 };
-static uint8_t    kline_chksm                 = 0;
-static uint8_t    kline_size                  = 0;
-/* Buffer for int to ascii conversions */
-static char       kline_strbuf[STRBUF_SIZE]   = { 0 };
-/* Buffer for data string to send via Bluetooth */
-static char       kline_datastr[DATASTR_SIZE] = { 0 };
+static uint8_t    kline_err_cntr                       = 0;
+static uint8_t    kline_out_cntr                       = 0;
+static uint8_t    kline_in_cntr                        = 0;
+static uint8_t    kline_in_bytes[KLINE_RX_BUFFER_SIZE] = { 0 };
+static uint8_t    kline_chksm                          = 0;
+static uint8_t    kline_size                           = 0;
+/* Buffer for data frame to send via Bluetooth */
+static uint8_t    data_message[BT_TX_BUFFER_SIZE]      = { 0 };
+static uint8_t    data_message_index                   = 2;
 /* K-Line start sequence */
-static const char KLINE_CMD_START_COM[5]      = { 0x81, 0x12, 0xF1, 0x81, 0x05 };
+static const char KLINE_CMD_START_COM[5]               = { 0x81, 0x12, 0xF1, 0x81, 0x05 };
 /* K-Line sensor data request */
-static const char KLINE_CMD_READ_ALL_SENS[7]  = { 0x80, 0x12, 0xF1, 0x02, 0x21, 0x08, 0xAE };
+static const char KLINE_CMD_READ_ALL_SENS[7]           = { 0x80, 0x12, 0xF1, 0x02, 0x21, 0x08, 0xAE };
 /* Bluetooth SPP variables */
 xQueueHandle      message_queue;
-static uint32_t   bt_spp_conn_handle          = 0;
-static const      esp_spp_mode_t esp_spp_mode = ESP_SPP_MODE_CB;
-static const      esp_spp_sec_t  sec_mask     = ESP_SPP_SEC_AUTHENTICATE;
-static const      esp_spp_role_t role_slave   = ESP_SPP_ROLE_SLAVE;
+static uint32_t   bt_spp_conn_handle                   = 0;
+static const      esp_spp_mode_t esp_spp_mode          = ESP_SPP_MODE_CB;
+static const      esp_spp_sec_t  sec_mask              = ESP_SPP_SEC_AUTHENTICATE;
+static const      esp_spp_role_t role_slave            = ESP_SPP_ROLE_SLAVE;
 
 
 /* Setup UART1 for K-Line communication */
@@ -93,6 +98,23 @@ static void init_uart() {
 }
 
 
+/* Send a text message  */
+static void send_text_message(const char* text) {
+	size_t length = strlen(text) + 2;
+	if(length > 0xFF) {
+		return;
+	}
+
+	uint8_t text_message[BT_TX_BUFFER_SIZE];
+	/* Set the content type byte to 2 for text */
+	text_message[0] = CONTENT_TYPE_TEXT;
+	text_message[1] = length;
+	memcpy(&text_message[2], text, length - 2);
+
+	xQueueSendFromISR(message_queue, &text_message, NULL);
+}
+
+
 /* Start K-Line communication */
 static void start_kline() {
 	if(!kline_running) {
@@ -101,7 +123,7 @@ static void start_kline() {
 		/* Reset protocol state machine */
 		kline_state             = INIT;
 		kline_fastinit_start_us = 0;
-		xQueueSendFromISR(message_queue, "INIT\n", NULL);
+		send_text_message("INIT");
 
 		/* Init UART and start timer */
 		init_uart();
@@ -133,7 +155,7 @@ static void stop_kline() {
 /* Reset variables after receiving a frame */
 static void kline_eof_reset() {
 	time_us = esp_timer_get_time();
-	memset(kline_in_bytes, 0, RXDATA_SIZE);
+	memset(kline_in_bytes, 0, KLINE_RX_BUFFER_SIZE);
 	kline_out_cntr    = 0;
 	kline_in_cntr     = 0;
 	kline_chksm       = 0;
@@ -159,25 +181,25 @@ static int8_t kline_transmit(const char* command, size_t len) {
 	if(rx_bytes > 0) {
 		/* Feed protocol watchdog and receive */
 		kline_watchdog_us = time_us;
-		int rx_size       = uart_read_bytes(UART_NUM_1, kline_in_bytes, RXDATA_SIZE, 5 / portTICK_RATE_MS);
+		int rx_size       = uart_read_bytes(UART_NUM_1, kline_in_bytes, KLINE_RX_BUFFER_SIZE, 5 / portTICK_RATE_MS);
 
 		for(int i = 0; i < rx_size; i++) {
 			kline_in_cntr++;
 			/* (kline_in_cntr <= kline_out_cntr) -> ACK bytes of command being sent */
 			if(kline_in_cntr > kline_out_cntr) {
 				if(kline_in_cntr == kline_out_cntr + 1) {
-					/* Empty data string buffer before appending first data byte */
-					memset(kline_datastr, 0, DATASTR_SIZE);
+					/* Reset content type byte to 1 == binary and message length to 0 */
+					data_message[0]    = CONTENT_TYPE_DATA;
+					data_message[1]    = 0;
+					/* Start at index 2 because index 1 is filled with the size byte later */
+					data_message_index = 2;
 				} else if(kline_in_cntr == kline_out_cntr + 4) {
 					/* Retrieve message size field */
 					kline_size = kline_in_bytes[i];
 				}
 
-				/* Convert data to csv string */
-				memset(kline_strbuf, 0, STRBUF_SIZE);
-				itoa(kline_in_bytes[i], kline_strbuf, 10);
-				strcat(kline_datastr, kline_strbuf);
-				strcat(kline_datastr, ",");
+				/* Insert byte into data frame buffer  */
+				data_message[data_message_index++] = kline_in_bytes[i];
 
 				if(kline_in_cntr < kline_out_cntr + kline_size + 5) {
 					/* Collect checksum data */
@@ -186,9 +208,9 @@ static int8_t kline_transmit(const char* command, size_t len) {
 					/* End of frame -> check if checksums match, return -1 (continue) if faulty */
 					int8_t ret = -1;
 					if(kline_chksm == kline_in_bytes[i]) {
-						/* Return 0 (success) if ok */
-						strcat(kline_datastr, "\n");
-						ret = 0;
+						/* Set message length and return 0 (success) if ok */
+						data_message[1] = data_message_index;
+						ret             = 0;
 					}
 					kline_eof_reset();
 					return ret;
@@ -248,7 +270,7 @@ static void IRAM_ATTR timer0_isr() {
 			if(kline_fastinit() == 0) {
 				/* Go to START_SESSION state on success */
 				kline_state = START_SESSION;
-				xQueueSendFromISR(message_queue, "START_SESSION\n", NULL);
+				send_text_message("START_SESSION");
 			}
 			break;
 
@@ -258,11 +280,11 @@ static void IRAM_ATTR timer0_isr() {
 			if(ret == 0) {
 				/* Go to ACTIVE state on success */
 				kline_state = ACTIVE;
-				xQueueSendFromISR(message_queue, "ACTIVE\n", NULL);
+				send_text_message("ACTIVE");
 			} else if(ret < 0) {
 				/* Go back to INIT state on error */
 				kline_state = INIT;
-				xQueueSendFromISR(message_queue, "INIT\n", NULL);
+				send_text_message("INIT");
 			}
 			break;
 
@@ -272,24 +294,24 @@ static void IRAM_ATTR timer0_isr() {
 			if(ret == 0) {
 				/* Send data via Bluetooth on success */
 				kline_err_cntr = 0;
-				xQueueSendFromISR(message_queue, &kline_datastr, NULL);
+				xQueueSendFromISR(message_queue, &data_message, NULL);
 			} else if(ret == -1) {
 				/* Count checksum mismatches and go back to START_SESSION state after KLINE_ERROR_THRESHOLD in a row */
 				kline_err_cntr++;
 				if(kline_err_cntr >= KLINE_ERROR_THRESHOLD) {
 					kline_state = START_SESSION;
-					xQueueSendFromISR(message_queue, "START_SESSION\n", NULL);
+					send_text_message("START_SESSION");
 				}
 			} else if(ret == -2) {
 				/* Go back to START_SESSION state on error (receive timeout) */
 				kline_state = START_SESSION;
-				xQueueSendFromISR(message_queue, "START_SESSION\n", NULL);
+				send_text_message("START_SESSION");
 			}
 			break;
 
 		default:
 			kline_state = INIT;
-			xQueueSendFromISR(message_queue, "INIT\n", NULL);
+			send_text_message("INIT");
 	}
 
 	/* Clear the timer interrupt */
@@ -322,10 +344,10 @@ static void init_timer() {
 }
 
 
-/* Send string via Bluetooth SPP */
-static void bt_spp_send(const char* data) {
-	if(bt_spp_conn_handle) {
-		esp_spp_write(bt_spp_conn_handle, strlen(data), (uint8_t *) data);
+/* Send data via Bluetooth SPP */
+static void bt_spp_send(uint8_t* bt_message) {
+	if(bt_spp_conn_handle && bt_message) {
+		esp_spp_write(bt_spp_conn_handle, bt_message[1], bt_message);
 	}
 }
 
@@ -333,21 +355,21 @@ static void bt_spp_send(const char* data) {
 /* Task checking for data in the queue and sending it via Bluetooth SPP */
 static void bt_spp_task() {
 	while(1) {
-		char kline_datastr[DATASTR_SIZE];
-		xQueueReceive(message_queue, &kline_datastr, portMAX_DELAY);
-		bt_spp_send(kline_datastr);
+		uint8_t bt_message[BT_TX_BUFFER_SIZE];
+		xQueueReceive(message_queue, bt_message, portMAX_DELAY);
+		bt_spp_send(bt_message);
 	}
 }
 
 
 /* Process data received from Bluetooth serial port */
 static void bt_spp_process_rxdata(uint8_t* data, uint16_t len) {
-	if(len == 1 && data[0] == 'r') {
+	if(len == 1 && data[0] == 0xFF) {
 		stop_kline();
 		esp_restart();
-	} else if(len == 1 && data[0] == 'g') {
+	} else if(len == 1 && data[0] == 0x01) {
 		start_kline();
-	} else if(len == 1 && data[0] == 's') {
+	} else if(len == 1 && data[0] == 0x00) {
 		stop_kline();
 	}
 }
@@ -385,7 +407,7 @@ static void bt_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t* param) {
 		case ESP_SPP_SRV_OPEN_EVT:
 			bt_spp_conn_handle = param->srv_open.handle;
 			gpio_set_level(LED_GPIO, 0);
-			xQueueSendFromISR(message_queue, "ESP_SV ready\n", NULL);
+			send_text_message("ESP_SV ready");
 			break;
 		case ESP_SPP_SRV_STOP_EVT:
 			break;
@@ -506,7 +528,7 @@ static void init_led() {
 
 /* Entry point */
 void app_main() {
-	message_queue = xQueueCreate(3, sizeof(kline_datastr));
+	message_queue = xQueueCreate(3, BT_TX_BUFFER_SIZE);
 	init_led();
 	init_bt_spp();
 	init_timer();
