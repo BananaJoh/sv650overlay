@@ -16,6 +16,8 @@
     <string name="bluetooth_fine_location_not_granted">Access to fine location has not been granted, exiting</string>
     <string name="bluetooth_fine_location_rationale">Access to fine location is needed for Bluetooth device discovery</string>
     <string name="bluetooth_busy">Bluetooth busy</string>
+    <string name="bluetooth_le_service_not_found">BLE service not found</string>
+    <string name="bluetooth_connection_lost">Connection to %1$s lost</string>
     <string name="bluetooth_select_device">Please select a device to connect to</string>
     <string name="bluetooth_no_paired_devices">No paired Bluetooth devices available</string>
     <string name="bluetooth_no_new_devices">No new Bluetooth devices found</string>

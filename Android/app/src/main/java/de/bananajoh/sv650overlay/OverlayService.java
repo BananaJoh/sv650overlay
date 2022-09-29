@@ -3,6 +3,12 @@ package de.bananajoh.sv650overlay;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -40,10 +46,13 @@ import static android.bluetooth.BluetoothDevice.ACTION_ACL_DISCONNECTED;
 
 public class OverlayService extends Service implements View.OnTouchListener, View.OnClickListener {
     private static final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private static final UUID BLE_SPP_SERVICE_UUID = UUID.fromString("0000ABF0-0000-1000-8000-00805F9B34FB");
+    private static final UUID BLE_SPP_CHAR_TX_UUID = UUID.fromString("0000ABF1-0000-1000-8000-00805F9B34FB");
+    private static final UUID BLE_SPP_CHAR_RX_UUID = UUID.fromString("0000ABF2-0000-1000-8000-00805F9B34FB");
     private static final long BLUETOOTH_RECONNECT_INTERVAL_MS = 15000;
-    private static final byte COMMAND_RESET = (byte) 0xFF;
-    private static final byte COMMAND_GO    = 0x01;
-    private static final byte COMMAND_STOP  = 0x00;
+    private static final byte[] COMMAND_RESET = { (byte) 0xFF };
+    private static final byte[] COMMAND_GO    = { 0x01 };
+    private static final byte[] COMMAND_STOP  = { 0x00 };
     private static final int GEAR_DATA_INDEX = 28;
     private static final byte[] TEST_DATAFRAME = {
             0x01, 59, 0,  0,  0, 0, 0, 0, 0, 0,
@@ -74,6 +83,10 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
     private int bluetoothReadBufferPosition = 0;
     private int bluetoothReadDataLength = 0;
     private volatile boolean stopBluetoothWorkerThread = true;
+    private BluetoothGatt bluetoothGatt = null;
+    private BluetoothGattCallback gattCallback = null;
+    private BluetoothGattCharacteristic bleTxCharacteristic = null;
+    private boolean bleConnected = false;
     private String lastDeviceAddress = null;
     private boolean lastDeviceSecure = false;
     private Handler bluetoothReconnectHandler = null;
@@ -97,7 +110,7 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
             /* No extra intent action check as there is only one filter registered */
             BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
             if(device.getAddress().equals(lastDeviceAddress)) {
-                Toast.makeText(overlayButton.getContext(), "Connection to " + device.getName() + " lost", Toast.LENGTH_LONG).show();
+                Toast.makeText(overlayButton.getContext(), getString(R.string.bluetooth_connection_lost, device.getName()), Toast.LENGTH_LONG).show();
                 disconnectBluetooth(true);
             }
         }
@@ -284,14 +297,11 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
         bluetoothReadBuffer = new byte[1024];
         bluetoothWorkerThread = new Thread(new Runnable() {
             public void run() {
-                if(bluetoothOutputStream != null) {
-                    try {
-                        bluetoothOutputStream.write(COMMAND_GO);
-                        bluetoothOutputStream.flush();
-                    } catch(final IOException ex) {
-                        Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
+                handler.post(new Runnable() {
+                    public void run() {
+                        sendCommand(COMMAND_GO);
                     }
-                }
+                });
 
                 while(!Thread.currentThread().isInterrupted() && !stopBluetoothWorkerThread) {
                     try {
@@ -354,18 +364,21 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
 
 
     /* Send command to the connected device */
-    public void sendCommand(byte command) {
-        if(bluetoothOutputStream == null) {
-            return;
+    public void sendCommand(byte[] command) {
+        if(bluetoothOutputStream != null) {
+            try {
+                bluetoothOutputStream.write(command);
+                bluetoothOutputStream.flush();
+            } catch (final IOException ex) {
+                Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
+                return;
+            }
+            Toast.makeText(this, R.string.command_sent, Toast.LENGTH_SHORT).show();
+        } else if(bluetoothGatt != null && bleTxCharacteristic != null) {
+            bleTxCharacteristic.setValue(command);
+            bluetoothGatt.writeCharacteristic(bleTxCharacteristic);
+            Toast.makeText(this, R.string.command_sent, Toast.LENGTH_SHORT).show();
         }
-        try {
-            bluetoothOutputStream.write(command);
-            bluetoothOutputStream.flush();
-        } catch(final IOException ex) {
-            Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
-            return;
-        }
-        Toast.makeText(this, R.string.command_sent, Toast.LENGTH_SHORT).show();
     }
 
 
@@ -403,64 +416,143 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
 
                 /* Get the BluetoothDevice object and attempt to connect to the device */
                 bluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
-                try {
-                    bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(SPP_UUID);
-                } catch (final IOException ex) {
-                    handler.post(new Runnable() {
-                        public void run() {
-                            Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
-                        }
-                    });
-                    bluetoothSocket = null;
-                    bluetoothBusy = false;
-                    return;
-                }
-                try {
-                    bluetoothSocket.connect();
-                } catch (final IOException ex) {
-                    handler.post(new Runnable() {
-                        public void run() {
-                            if (overlayButton != null) {
-                                Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
-                            }
-                        }
-                    });
-                    bluetoothSocket = null;
-                    bluetoothBusy = false;
-                    return;
-                }
-                try {
-                    bluetoothOutputStream = bluetoothSocket.getOutputStream();
-                    bluetoothInputStream = bluetoothSocket.getInputStream();
-                } catch (final IOException ex1) {
-                    handler.post(new Runnable() {
-                        public void run() {
-                            Toast.makeText(overlayButton.getContext(), ex1.toString(), Toast.LENGTH_LONG).show();
-                        }
-                    });
+                int deviceType = bluetoothDevice.getType();
+                if(deviceType == BluetoothDevice.DEVICE_TYPE_CLASSIC) {
                     try {
-                        bluetoothSocket.close();
-                    } catch (final IOException ex2) {
+                        bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(SPP_UUID);
+                    } catch (final IOException ex) {
                         handler.post(new Runnable() {
                             public void run() {
-                                Toast.makeText(overlayButton.getContext(), ex2.toString(), Toast.LENGTH_LONG).show();
+                                Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
                             }
                         });
                         bluetoothSocket = null;
+                        bluetoothBusy = false;
+                        return;
                     }
-                    bluetoothOutputStream = null;
-                    bluetoothInputStream = null;
-                    bluetoothBusy = false;
-                    return;
-                }
+                    try {
+                        bluetoothSocket.connect();
+                    } catch (final IOException ex) {
+                        handler.post(new Runnable() {
+                            public void run() {
+                                if (overlayButton != null) {
+                                    Toast.makeText(overlayButton.getContext(), ex.toString(), Toast.LENGTH_LONG).show();
+                                }
+                            }
+                        });
+                        bluetoothSocket = null;
+                        bluetoothBusy = false;
+                        return;
+                    }
+                    try {
+                        bluetoothOutputStream = bluetoothSocket.getOutputStream();
+                        bluetoothInputStream = bluetoothSocket.getInputStream();
+                    } catch (final IOException ex1) {
+                        handler.post(new Runnable() {
+                            public void run() {
+                                Toast.makeText(overlayButton.getContext(), ex1.toString(), Toast.LENGTH_LONG).show();
+                            }
+                        });
+                        try {
+                            bluetoothSocket.close();
+                        } catch (final IOException ex2) {
+                            handler.post(new Runnable() {
+                                public void run() {
+                                    Toast.makeText(overlayButton.getContext(), ex2.toString(), Toast.LENGTH_LONG).show();
+                                }
+                            });
+                            bluetoothSocket = null;
+                        }
+                        bluetoothOutputStream = null;
+                        bluetoothInputStream = null;
+                        bluetoothBusy = false;
+                        return;
+                    }
 
-                /* Connection established */
-                handler.post(new Runnable() {
-                    public void run() {
-                        startBluetoothWorkerThread();
-                        overlayButton.setImageResource(R.drawable.sevenseg_empty);
-                    }
-                });
+                    /* Connection established */
+                    handler.post(new Runnable() {
+                        public void run() {
+                            startBluetoothWorkerThread();
+                            overlayButton.setImageResource(R.drawable.sevenseg_empty);
+                        }
+                    });
+                } else if(deviceType == BluetoothDevice.DEVICE_TYPE_LE || deviceType == BluetoothDevice.DEVICE_TYPE_DUAL) {
+                    gattCallback = new BluetoothGattCallback() {
+                        @Override
+                        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+                            if(newState == BluetoothProfile.STATE_CONNECTED) {
+                                bleConnected = true;
+                                bluetoothGatt.discoverServices();
+                                handler.post(new Runnable() {
+                                    public void run() {
+                                        overlayButton.setImageResource(R.drawable.sevenseg_empty);
+                                    }
+                                });
+                            } else if(newState == BluetoothProfile.STATE_DISCONNECTED) {
+                                bleConnected = false;
+                                bleTxCharacteristic = null;
+                                handler.post(new Runnable() {
+                                    public void run() {
+                                        if(overlayButton != null) {
+                                            overlayButton.setImageResource(R.drawable.sevenseg_dot);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+
+                        @Override
+                        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+                            if(status == BluetoothGatt.GATT_SUCCESS) {
+                                for(final BluetoothGattService service : gatt.getServices()) {
+                                    if(service.getUuid().equals(BLE_SPP_SERVICE_UUID)) {
+                                        for(final BluetoothGattCharacteristic characteristic : service.getCharacteristics()) {
+                                            if(characteristic.getUuid().equals(BLE_SPP_CHAR_RX_UUID)) {
+                                                bluetoothGatt.setCharacteristicNotification(characteristic, true);
+                                                BluetoothGattDescriptor descriptor = characteristic.getDescriptors().get(0);
+                                                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                                                bluetoothGatt.writeDescriptor(descriptor);
+                                            } else if(characteristic.getUuid().equals(BLE_SPP_CHAR_TX_UUID)) {
+                                                bleTxCharacteristic = characteristic;
+                                            }
+                                        }
+
+                                        handler.postDelayed(new Runnable() {
+                                            public void run() {
+                                                /* Request bigger MTU to receive whole data frames (59 bytes) */
+                                                bluetoothGatt.requestMtu(128);
+                                            }
+                                        }, 100);
+                                        handler.postDelayed(new Runnable() {
+                                            public void run() {
+                                                sendCommand(COMMAND_GO);
+                                            }
+                                        }, 500);
+                                    }
+                                }
+                            } else {
+                                handler.post(new Runnable() {
+                                    public void run() {
+                                        Toast.makeText(overlayButton.getContext(), R.string.bluetooth_le_service_not_found, Toast.LENGTH_LONG).show();
+                                    }
+                                });
+                            }
+                        }
+
+                        @Override
+                        public void onCharacteristicChanged(BluetoothGatt gatt, final BluetoothGattCharacteristic characteristic) {
+                            final byte[] data = characteristic.getValue();
+                            if(data != null && data.length > 0) {
+                                handler.post(new Runnable() {
+                                    public void run() {
+                                        processReceivedData(data);
+                                    }
+                                });
+                            }
+                        }
+                    };
+                    bluetoothGatt = bluetoothDevice.connectGatt(overlayButton.getContext(), false, gattCallback);
+                }
                 bluetoothBusy = false;
             }
         }).start();
@@ -469,10 +561,13 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
 
     /* Check if Bluetooth is connected */
     public boolean isBluetoothConnected() {
-        if(bluetoothSocket == null) {
-            return false;
+        if(bluetoothSocket != null) {
+            return bluetoothSocket.isConnected();
+        } else if(bluetoothGatt != null) {
+            return bleConnected;
         }
-        return bluetoothSocket.isConnected();
+
+        return false;
     }
 
 
@@ -519,6 +614,13 @@ public class OverlayService extends Service implements View.OnTouchListener, Vie
                 bluetoothSocket = null;
             }
         }
+        bleTxCharacteristic = null;
+        if(bluetoothGatt != null) {
+            bluetoothGatt.disconnect();
+            bluetoothGatt.close();
+            bluetoothGatt = null;
+        }
+
         overlayButton.setImageResource(R.drawable.sevenseg_dot);
         bluetoothBusy = false;
     }

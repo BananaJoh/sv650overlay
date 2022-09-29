@@ -3,7 +3,6 @@ package de.bananajoh.sv650overlay;
 import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -32,7 +31,6 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
-import java.util.Set;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -72,13 +70,13 @@ public class MainActivity extends AppCompatActivity {
             } else if(data[0] == 0x01) {
                 /* Convert values from data messages (type 0x01) and collect them in the right order */
                 String entries[] = new String[dataInfoMaxShowAtPos + 1];
-                for (int i = 0; (i + 2) < data.length; i++) {
+                for(int i = 0; (i + 2) < data.length; i++) {
                     if (i < DataInfo.ENTRIES.length && DataInfo.ENTRIES[i].showAtPos > -1) {
                         entries[DataInfo.ENTRIES[i].showAtPos] = "<b>" + DataInfo.ENTRIES[i].label + "</b><br>";
                         /* As java bytes are signed, mask the byte to prevent sign extension and get an unsigned value */
                         int value = data[i + 2] & 0xFF;
                         /* Data frame index is offset +8 */
-                        switch (i) {
+                        switch(i) {
                             case 17: { /* RPM */
                                 value = value * 69 / 10 * 10;
                                 break;
@@ -205,15 +203,8 @@ public class MainActivity extends AppCompatActivity {
         boolean restoredDeviceSecure = sharedPreferences.getBoolean("deviceSecure", true);
 
         if(restoredDeviceAddress != null) {
-            Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
-            for(BluetoothDevice device : pairedDevices) {
-                if(device.getAddress().equals(restoredDeviceAddress)) {
-                    overlayServiceBinding.connectBluetooth(restoredDeviceAddress, restoredDeviceSecure, true);
-                    return;
-                }
-            }
-            /* Device not paired anymore, remove */
-            sharedPreferences.edit().remove("deviceAddress").remove("deviceSecure").apply();
+            overlayServiceBinding.connectBluetooth(restoredDeviceAddress, restoredDeviceSecure, true);
+            return;
         }
 
         /* No saved device available to connect to, show device list */
