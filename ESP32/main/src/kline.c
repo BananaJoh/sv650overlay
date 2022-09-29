@@ -19,7 +19,7 @@
 #define KLINE_ERROR_THRESHOLD    5              /* Threshold for checksum mismatches in a row before trying to restart session */
 
 /* Buffer sizes */
-#define BT_TX_BUFFER_SIZE        70
+#define DATA_BUFFER_SIZE         70             /* Same as for BLE */
 #define KLINE_RX_BUFFER_SIZE     100
 #define UART_RX_BUFFER_SIZE      256
 
@@ -49,7 +49,7 @@ static uint8_t       kline_checksum_                       = 0;
 static uint8_t       kline_size_                           = 0;
 
 /* Buffer to collect data frame */
-static uint8_t       data_buffer_[BT_TX_BUFFER_SIZE]       = { 0 };
+static uint8_t       data_buffer_[DATA_BUFFER_SIZE]       = { 0 };
 static uint8_t       data_buffer_index_                    = 0;
 
 /* K-line commands */
